@@ -5,8 +5,8 @@
 평일 08~19시(한국시간) 1시간마다 CMS 데이터를 다시 조회해 갱신·푸시한다.
 
 ## 파일
-- `template.html` : 페이지 틀. `/*__DATA__*/null` 자리에 데이터 JSON이 들어간다.
-- `build.py`      : `data/*.json`을 읽어 `index.html` 생성. 개인 고객명(`..._개인`)은 "개인고객"으로 가림.
+- `build.py`      : `data/*.json`을 읽어 **저장소 루트 `index.html`의 `const D = ...;` 줄만** 교체(디자인·기능 유지). 개인 고객명(`..._개인`)은 "개인고객"으로 가림. 데이터가 그대로면 파일을 건드리지 않음.
+- `template.html` 은 예전 버전 틀이라 더 이상 쓰지 않는다(루트 `index.html`이 최신 페이지).
 - `queries.json`  : CMS 조회 SQL (데이터셋 이름 → SQL). CMS-MCP `query_db`로 실행.
 - `data/`         : 마지막 조회 결과(예시이자 초기값).
 
@@ -20,8 +20,11 @@
    - `data/team/unreg_status`   → `data/unreg_status.json` : `[{"id": "...", "status": "..."}]`
    - `data/team/parts_price`    → `data/price.json` : `[{model, part, price, labor, sort}]`
    (아티팩트 도구를 쓸 수 없으면 기존 파일을 그대로 둔다.)
-3. `python3 build.py` → `index.html` 생성.
-4. 이전과 내용이 다를 때만 커밋·푸시 (메시지 예: `data: 2026-11-25 14:00 갱신`).
+3. `python3 정비실현황판_업로드용/build.py` → 출력이 `changed`면 루트 `index.html`이 갱신된 것, `unchanged`면 CMS 변동 없음.
+4. `changed`일 때만 `index.html`을 커밋·푸시 (메시지 예: `data: 2026-11-25 14:00 갱신`). `data/`는 커밋하지 않는다.
+
+## 자동 실행
+Claude 예약 작업(평일 08~19시 KST 매시 03분)이 위 절차를 실행한다. CMS-MCP 커넥터로 조회하므로 GitHub Actions에는 CMS 접속 정보가 필요 없다.
 
 ## 수정 기능 (Apps Script)
 - `apps_script/Code.gs`를 Google 스프레드시트의 Apps Script에 붙여 웹 앱으로 배포한 주소를 `config.json`의 `api_url`에 넣는다.
