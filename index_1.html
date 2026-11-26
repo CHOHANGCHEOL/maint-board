@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>정비실 현황판</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root { --fg:#1f2328; --muted:#656d76; --bg:#ffffff; --panel:#f6f8fa; --line:#d8dee4; --ok:#1a7f37; --warn:#bf8700; --bad:#cf222e; --c0:#2f6fde; --c1:#e5822b; --c2:#7a5af5; }
+@media (prefers-color-scheme: dark) { :root { --fg:#e6edf3; --muted:#8d96a0; --bg:#0d1117; --panel:#161b22; --line:#30363d; --ok:#3fb950; --warn:#d29922; --bad:#f85149; } }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; color: var(--fg); background: var(--bg); font-size: 14px; }
+.wrap { max-width: 1400px; margin: 0 auto; padding: 0 16px 40px; }
+header { position: sticky; top: 0; z-index: 10; background: var(--bg); border-bottom: 1px solid var(--line); padding: 12px 0 0; }
+h1 { font-size: 22px; margin: 0; font-weight: 600; }
+.sub { color: var(--muted); font-size: 12px; margin: 4px 0 8px; }
+.tabs { display: flex; gap: 2px; overflow-x: auto; }
+.tab { border: 0; background: none; font: inherit; padding: 8px 14px; color: var(--muted); border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; }
+.tab.on { color: var(--fg); border-bottom-color: var(--fg); font-weight: 600; }
+.page { display: none; flex-direction: column; gap: 14px; padding-top: 14px; }
+.page.on { display: flex; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; }
+.card .l { color: var(--muted); font-size: 12px; }
+.card .v { font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.card .s { color: var(--muted); font-size: 12px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 400px), 1fr)); gap: 12px; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; min-width: 0; }
+.panel h2 { font-size: 16px; margin: 0 0 6px; font-weight: 600; }
+.panel > p { color: var(--muted); font-size: 12px; margin: 0 0 8px; }
+.wide { grid-column: 1 / -1; }
+.bars { display: flex; flex-direction: column; gap: 4px; }
+.bar { display: grid; grid-template-columns: minmax(90px, 38%) 1fr 48px; align-items: center; gap: 8px; font-size: 13px; }
+.bar .lab { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; color: var(--muted); }
+.bar .trk { height: 16px; }
+.bar .fill { height: 100%; border-radius: 3px; display: flex; overflow: hidden; }
+.bar .fill span { height: 100%; }
+.bar .num { text-align: right; font-variant-numeric: tabular-nums; }
+.bar.child .lab { padding-left: 18px; }
+.bar.child .trk { height: 11px; }
+.vbars { display: flex; align-items: flex-end; gap: 6px; height: 220px; padding-top: 18px; }
+.vcol { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; cursor: default; min-width: 0; }
+.vcol .vv { font-size: 12px; font-variant-numeric: tabular-nums; margin-bottom: 2px; }
+.vcol .stack { width: 70%; display: flex; flex-direction: column-reverse; border-radius: 3px 3px 0 0; overflow: hidden; }
+.vcol .x { font-size: 11px; color: var(--muted); margin-top: 4px; white-space: nowrap; }
+.vcol.dim { opacity: .45; }
+.vcol.click { cursor: pointer; }
+.legend { display: flex; gap: 12px; font-size: 12px; color: var(--muted); margin: 0 0 6px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.tw { overflow: auto; max-height: 480px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+th { color: var(--muted); font-weight: 600; position: sticky; top: 0; background: var(--panel); }
+td.n, th.n { text-align: right; }
+.warn { color: var(--bad); }
+.muted { color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.chip { font: inherit; font-size: 12px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--muted); cursor: pointer; }
+.chip.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.tog { font: inherit; font-size: 13px; font-weight: 600; padding: 2px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); cursor: pointer; text-align: left; }
+.badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 6px; border: 1.5px solid; }
+.st-입고예정 { background: rgba(59,130,246,.22); border-color: #3b82f6; }
+.st-작업대기 { background: rgba(245,158,11,.38); border-color: #d97706; }
+.st-작업중 { background: rgba(22,163,74,.38); border-color: #15803d; }
+.cars { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+.car { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 12px; font-size: 12px; }
+.car .t { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.car .t b { font-size: 14px; }
+.car dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; }
+.car dt { color: var(--muted); }
+.car dd { margin: 0; }
+.ok { color: var(--ok); border-color: var(--ok); }
+.wb { color: var(--warn); border-color: var(--warn); }
+input[type=search], select { font: inherit; font-size: 13px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.empty { color: var(--muted); font-size: 13px; padding: 10px 0; }
+footer { color: var(--muted); font-size: 12px; margin-top: 24px; }
+.btn { font: inherit; font-size: 12px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); cursor: pointer; }
+.btn:disabled { opacity: .5; cursor: default; }
+.btn.del { background: rgba(207,34,46,.14); border-color: var(--bad); color: var(--bad); font-weight: 600; }
+.btn.danger { background: var(--bad); border-color: var(--bad); color: #fff; font-weight: 600; }
+.stsel { font: inherit; font-size: 12px; font-weight: 600; padding: 3px 6px; border-radius: 6px; border: 1.5px solid; color: var(--fg); }
+.stsel.st-입고예정 { background: rgba(59,130,246,.22); border-color: #3b82f6; }
+.stsel.st-작업대기 { background: rgba(245,158,11,.38); border-color: #d97706; }
+.stsel.st-작업중 { background: rgba(22,163,74,.38); border-color: #15803d; }
+.num-in { width: 100px; text-align: right; font: inherit; font-size: 13px; padding: 3px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+.num-in.saved { border-color: var(--ok); }
+.topline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 4px 0 8px; }
+.topline .sub { margin: 0; }
+.conn { font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.conn.ok { color: var(--ok); border-color: var(--ok); }
+.conn.bad { color: var(--bad); border-color: var(--bad); }
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 50; }
+.overlay[hidden] { display: none; }
+.modal { background: var(--bg); color: var(--fg); border-radius: 10px; padding: 20px; width: min(420px, 92vw); box-shadow: 0 10px 30px rgba(0,0,0,.3); }
+.modal h3 { margin: 0 0 8px; font-size: 17px; }
+.modal p { margin: 0 0 16px; font-size: 14px; line-height: 1.5; color: var(--muted); }
+.modal .acts { display: flex; justify-content: flex-end; gap: 8px; }
+.modal .acts .btn { font-size: 14px; padding: 6px 16px; }
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 8px 16px; border-radius: 8px; font-size: 13px; z-index: 60; }
+.toast[hidden] { display: none; }
+.btn.est { border-color: var(--c0); color: var(--c0); font-weight: 600; }
+.addform { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px 10px; border: 1px dashed var(--line); border-radius: 8px; margin-top: 8px; font-size: 13px; }
+.addform input, .addform select { font: inherit; font-size: 13px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+.addform input.w-part { width: 200px; } .addform input.w-num { width: 110px; }
+.est-wrap { position: fixed; inset: 0; z-index: 70; background: rgba(0,0,0,.45); overflow: auto; padding: 24px 12px; }
+.est-wrap[hidden] { display: none; }
+.est-tools { max-width: 820px; margin: 0 auto 10px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--bg); padding: 10px 12px; border-radius: 8px; }
+.est-tools .sp { flex: 1; }
+.est-body { max-width: 820px; margin: 0 auto; display: grid; grid-template-columns: 1fr; gap: 10px; }
+.est-pick { background: var(--bg); border-radius: 8px; padding: 12px; max-height: 320px; overflow: auto; }
+.est-pick table td, .est-pick table th { padding: 4px 6px; }
+.est-pick input[type=number] { width: 56px; font: inherit; padding: 2px 4px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); color: var(--fg); }
+.paper { background: #fff; color: #111; border-radius: 4px; padding: 36px 40px; font-size: 13px; }
+.paper h1 { text-align: center; font-size: 26px; letter-spacing: 12px; margin: 0 0 18px; }
+.paper table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+.paper th, .paper td { border: 1px solid #555; padding: 6px 8px; color: #111; background: #fff; position: static; white-space: normal; }
+.paper th { background: #f1f3f5; font-weight: 600; text-align: center; }
+.paper td.n { text-align: right; }
+.paper .tot td { font-weight: 700; background: #f8f9fa; }
+.paper .memo { min-height: 60px; white-space: pre-wrap; }
+.paper .sign { display: flex; justify-content: space-between; margin-top: 24px; font-size: 13px; }
+.paper input.inl, .paper textarea.inl { font: inherit; border: 0; border-bottom: 1px dashed #999; background: transparent; color: #111; width: 100%; }
+.paper textarea.inl { border: 1px dashed #bbb; min-height: 60px; resize: vertical; }
+@media print {
+  @page { size: A4; margin: 12mm; }
+  body.printing .wrap > *:not(.est-wrap), body.printing .overlay, body.printing .toast, body.printing .est-tools, body.printing .est-pick { display: none !important; }
+  body.printing .est-wrap { position: static; background: none; padding: 0; overflow: visible; }
+  body.printing .est-body { max-width: none; } body.printing .wrap { max-width: none; padding: 0; }
+  body.printing .paper { border-radius: 0; padding: 0; }
+  body.printing .paper input.inl, body.printing .paper textarea.inl { border: 0; resize: none; } body.printing ::placeholder { color: transparent; }
+}
+details.hid summary { cursor: pointer; color: var(--muted); font-size: 13px; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>정비실 현황판</h1>
+  <div class="topline"><p class="sub">CMS 데이터 기준 · 마지막 갱신 2026-11-26 10:21 (한국시간, 매시 자동 갱신)</p><span class="conn" id="conn">수정 저장소 연결 중…</span><button class="btn" id="reload">새로고침</button></div>
+  <nav class="tabs" id="tabs">
+    <button class="tab on" data-t="prep">출고 준비</button>
+    <button class="tab" data-t="returns">반납·재리스</button>
+    <button class="tab" data-t="parts">부자재 소요</button>
+    <button class="tab" data-t="monthly">월별 출고</button>
+    <button class="tab" data-t="price">부품·공임 단가</button>
+  </nav>
+</header>
+
+<section class="page on" id="p-prep">
+  <div class="kpis" id="prepKpis"></div>
+  <div class="grid">
+    <div class="panel"><h2>일자별 출고 예정</h2><div class="legend"><span><i style="background:var(--c0)"></i>신차</span><span><i style="background:var(--c1)"></i>중고</span><span><i style="background:var(--c2)"></i>연장</span></div><div id="prepDay"></div></div>
+    <div class="panel"><h2>차종별 출고 예정 (7일)</h2><div id="prepModel"></div></div>
+    <div class="panel"><h2>준비할 부자재 (출고완료 전 차량)</h2><div id="prepParts"></div></div>
+    <div class="panel wide"><h2>출고 예정 목록</h2><div class="chips" id="prepDates"></div><div class="tw"><table><thead><tr><th>출고일</th><th>상태</th><th>거래처</th><th>차종</th><th>구분</th><th>차량번호</th><th>배달통</th><th>크로스바</th><th>스크린·브라켓·짐대</th></tr></thead><tbody id="prepRows"></tbody></table></div></div>
+  </div>
+</section>
+
+<section class="page" id="p-returns">
+  <div class="kpis" id="retKpis"></div>
+  <div class="grid">
+    <div class="panel wide"><h2>매물 미등록 반납 차량 (<span id="unregCnt"></span>대)</h2><p>중도해지된 인수형 계약 중 재리스 매물 등록도, 이후 새 계약도 없는 차량입니다. 상태를 바꾸면 바로 저장되고, 이 페이지를 보는 모든 사람에게 같은 값이 보입니다.</p><div class="tw"><table><thead><tr><th class="n">No.</th><th>상태</th><th>경과</th><th>해지 적용일</th><th>업체명</th><th>차량번호</th><th>차대</th><th>차종</th><th>보험만기</th><th></th></tr></thead><tbody id="unregRows"></tbody></table></div><details class="hid"><summary>삭제한 차량 <span id="hidCnt">0</span>대 보기 (복원 가능)</summary><div class="tw"><table><thead><tr><th>차량번호</th><th>업체명</th><th>차종</th><th>삭제일</th><th></th></tr></thead><tbody id="hidRows"></tbody></table></div></details></div>
+    <div class="panel wide"><h2>재출고 대기 반납 차량 (<span id="pendCnt"></span>대)</h2><div class="tw"><table><thead><tr><th class="n">No.</th><th>해지 처리일</th><th>해지 적용일</th><th>업체명</th><th>차량번호</th><th>차대</th><th>차종</th><th class="n">운행거리(km)</th><th>보험만기</th><th>매물 상태</th></tr></thead><tbody id="pendRows"></tbody></table></div></div>
+  </div>
+  <div class="panel"><h2>재리스 매물 (출고 예정·예약·대기)</h2><div class="cars" id="relist"></div></div>
+  <div class="grid"><div class="panel"><h2>차종별 중도반납 (최근 1년)</h2><div id="retModel"></div></div></div>
+</section>
+
+<section class="page" id="p-parts">
+  <div class="panel"><h2>최근 30일 부자재 사용량</h2><p>출고완료 계약에 등록된 수량입니다.</p><div class="chips" id="partChips"></div><div id="partsUse"></div></div>
+  <div class="panel"><h2>품목별 사용량과 CMS 재고</h2><p>CMS 재고가 음수인 품목은 입고 등록이 빠져 있어 실제 재고와 다릅니다.</p><div class="tw"><table><thead><tr><th>구분</th><th>품목</th><th class="n">30일 사용</th><th class="n">하루 평균</th><th class="n">CMS 재고</th><th class="n">소진 예상</th></tr></thead><tbody id="partsRows"></tbody></table></div></div>
+</section>
+
+<section class="page" id="p-monthly">
+  <div class="row">조회 월 <select id="ymSel"></select> <span class="muted">신차 출고 기준</span></div>
+  <div class="kpis" id="mKpis"></div>
+  <div class="grid">
+    <div class="panel"><h2>신차 출고 추이 (최근 12개월)</h2><p>막대를 누르면 그 달로 바뀝니다.</p><div id="trend"></div></div>
+    <div class="panel"><h2>배달통 종류별 (<span class="ymL"></span>)</h2><div id="boxes"></div></div>
+    <div class="panel"><h2>크로스바 종류별 (<span class="ymL"></span>)</h2><p>차종을 누르면 색상별 수량이 펼쳐집니다.</p><div id="cross"></div></div>
+  </div>
+</section>
+
+<section class="page" id="p-price">
+  <div class="panel"><h2>부품 가격·공임 (25년식, 소비자가 부가세 포함)</h2><p>공임은 혼다/야마하 기준 시간당 125cc 이하 46,200원, 125cc 초과 64,900원. 금액 칸을 고치고 다른 곳을 누르면 바로 저장됩니다.</p>
+    <div class="row"><div class="chips" id="priceChips" style="margin:0"></div><input type="search" id="priceQ" placeholder="부품명 검색"></div>
+    <form class="addform" id="addForm"><strong>새 부품 등록</strong><select id="afModel" aria-label="차종"><option>PCX-A</option><option>포르자</option><option>NMAX</option><option>XMAX</option><option>범용</option></select><input class="w-part" id="afPart" placeholder="부품명" maxlength="60" required aria-label="부품명"><input class="w-num" id="afPrice" type="number" min="0" step="10" placeholder="부품가(원)" aria-label="부품가"><input class="w-num" id="afLabor" type="number" min="0" step="10" placeholder="공임(원)" aria-label="공임"><button class="btn" type="submit">등록</button></form>
+    <div class="tw" style="margin-top:8px"><table><thead><tr><th>차종</th><th>부품</th><th class="n">부품가</th><th class="n">공임</th><th class="n">합계</th><th></th></tr></thead><tbody id="priceRows"></tbody></table></div>
+  </div>
+</section>
+
+<div class="overlay" id="mx" hidden><div class="modal" role="dialog" aria-modal="true" aria-labelledby="mxT"><h3 id="mxT"></h3><p id="mxB"></p><div class="acts"><button class="btn" id="mxNo">취소</button><button class="btn danger" id="mxYes">삭제</button></div></div></div>
+<div class="toast" id="toast" hidden></div>
+<div class="est-wrap" id="est" hidden role="dialog" aria-modal="true" aria-label="수리 견적서">
+  <div class="est-tools"><strong>수리 견적서</strong><label>단가표 차종 <select id="estModel"><option>PCX-A</option><option>포르자</option><option>NMAX</option><option>XMAX</option><option>범용</option></select></label><input type="search" id="estQ" placeholder="부품 검색"><span class="sp"></span><button class="btn" id="estReset">선택 초기화</button><button class="btn danger" id="estPrint">인쇄 / PDF 저장</button><button class="btn" id="estClose">닫기</button></div>
+  <div class="est-body">
+    <div class="est-pick"><table><thead><tr><th></th><th>부품</th><th class="n">부품가</th><th class="n">공임</th><th class="n">수량</th></tr></thead><tbody id="estPick"></tbody></table></div>
+    <div class="paper" id="estPaper"></div>
+  </div>
+</div>
+<footer>집계 기준: 출고 준비는 오늘부터 7일 내 출고 예정 계약, 중도반납은 인수형 계약(자차리스·연장 제외), 월별 출고는 신차 출고완료 기준입니다. 개인 고객 이름은 가려서 표시합니다.</footer>
+</div>
+
+<script>
+const D = {"meta": {"updated": "2026-11-26 10:21", "today": "2026-11-26", "tomorrow": "2026-11-27"}, "prep_list": [{"ship_date": "2026-11-26", "status": "출고확인", "client": "용인보정지사(부릉)", "model": "NMAX", "kind": "신차", "plate": "", "box": "네스터70", "crossbar": "크로스바-NMAX(블랙)", "etc_parts": "NMAX(영우)", "detail_id": 8186}, {"ship_date": "2026-11-26", "status": "출고확인", "client": "부천여월지점(부릉)", "model": "NMAX", "kind": "신차", "plate": "경기부천가9797", "box": "", "crossbar": "", "etc_parts": "", "detail_id": 8182}, {"ship_date": "2026-11-26", "status": "출고확인", "client": "쿠팡팀허니비", "model": "PCX125", "kind": "신차", "plate": "", "box": "포도모빌리티 110리터", "crossbar": "크로스바-혼다(블랙)", "etc_parts": "PCX(영우)", "detail_id": 8184}, {"ship_date": "2026-11-26", "status": "출고확인", "client": "배민인천루트원", "model": "PCX125", "kind": "신차", "plate": "", "box": "레인보우(탑박스)", "crossbar": "크로스바-혼다(블랙)", "etc_parts": "PCX(영우)", "detail_id": 8193}, {"ship_date": "2026-11-26", "status": "출고확인", "client": "경기여주6허브(바로고)", "model": "PCX125", "kind": "신차", "plate": "", "box": "탑박스", "crossbar": "크로스바-혼다(블랙)", "etc_parts": "PCX(영우)", "detail_id": 8192}, {"ship_date": "2026-11-26", "status": "출고확인", "client": "경기평택2총판(바로고)", "model": "PCX125", "kind": "신차", "plate": "", "box": "탑박스", "crossbar": "크로스바-혼다(블랙)", "etc_parts": "PCX(영우)", "detail_id": 8189}, {"ship_date": "2026-11-26", "status": "출고확인", "client": "용인뉴프렌즈", "model": "PCX125", "kind": "신차", "plate": "차량할부0210", "box": "레인보우(탑박스)", "crossbar": "크로스바-혼다(블랙)", "etc_parts": "PCX(영우)", "detail_id": 8185}, {"ship_date": "2026-11-26", "status": "출고확인", "client": "배민평택배달쟁이", "model": "PCX125", "kind": "신차", "plate": "", "box": "탑박스", "crossbar": "크로스바-혼다(블랙)", "etc_parts": "PCX(영우)", "detail_id": 8183}, {"ship_date": "2026-11-26", "status": "출고확인", "client": "천안지와이소프트(꼬르륵)", "model": "PCX125", "kind": "신차", "plate": "", "box": "탑박스", "crossbar": "크로스바-혼다(옐로우)", "etc_parts": "PCX(영우)", "detail_id": 8180}, {"ship_date": "2026-11-26", "status": "출고확인", "client": "배달대행세븐", "model": "PCX125", "kind": "신차", "plate": "", "box": "레인보우(탑박스)", "crossbar": "크로스바-혼다(블랙)", "etc_parts": "PCX(영우)", "detail_id": 8178}, {"ship_date": "2026-11-26", "status": "출고확인", "client": "배민국제바이크", "model": "XMAX", "kind": "신차", "plate": "", "box": "탑박스", "crossbar": "크로스바-XMAX(블랙)", "etc_parts": "", "detail_id": 8133}, {"ship_date": "2026-11-26", "status": "출고확인", "client": "쿠팡울산어시스터스", "model": "XMAX", "kind": "신차", "plate": "", "box": "탑박스", "crossbar": "크로스바-XMAX(블랙)", "etc_parts": "", "detail_id": 8187}, {"ship_date": "2026-11-26", "status": "출고확인", "client": "충북음성2지사(콜고)", "model": "시티", "kind": "신차", "plate": "", "box": "포도모빌리티 110리터", "crossbar": "크로스바-혼다(블랙)", "etc_parts": "", "detail_id": 8154}, {"ship_date": "2026-11-26", "status": "출고확인", "client": "시흥정왕5허브(바로고)", "model": "포르자", "kind": "신차", "plate": "", "box": "탑박스", "crossbar": "크로스바-혼다(블랙)", "etc_parts": "", "detail_id": 8191}, {"ship_date": "2026-11-27", "status": "출고확인", "client": "오산하율컴퍼니(부릉)", "model": "NMAX", "kind": "신차", "plate": "차량할부0211", "box": "탑박스", "crossbar": "크로스바-NMAX(블랙)", "etc_parts": "NMAX(영우)", "detail_id": 8188}, {"ship_date": "2026-11-27", "status": "출고가능", "client": "준테크부곡지사(바로고)", "model": "PCX125", "kind": "신차", "plate": "", "box": "포도모빌리티 110리터", "crossbar": "크로스바-혼다(레드)", "etc_parts": "PCX(영우)", "detail_id": 8181}, {"ship_date": "2026-11-27", "status": "출고가능", "client": "남양주마석지점(바로고)", "model": "PCX125", "kind": "신차", "plate": "", "box": "포도모빌리티 110리터", "crossbar": "크로스바-혼다(옐로우)", "etc_parts": "PCX(영우)", "detail_id": 8179}], "prep_parts": [{"gubun": "배달통", "item": "탑박스", "qty": 8}, {"gubun": "배달통", "item": "포도모빌리티 110리터", "qty": 4}, {"gubun": "배달통", "item": "레인보우(탑박스)", "qty": 3}, {"gubun": "배달통", "item": "네스터70", "qty": 1}, {"gubun": "스크린", "item": "PCX(영우)", "qty": 10}, {"gubun": "스크린", "item": "NMAX(영우)", "qty": 2}, {"gubun": "크로스바", "item": "크로스바-혼다(블랙)", "qty": 9}, {"gubun": "크로스바", "item": "크로스바-혼다(옐로우)", "qty": 2}, {"gubun": "크로스바", "item": "크로스바-XMAX(블랙)", "qty": 2}, {"gubun": "크로스바", "item": "크로스바-NMAX(블랙)", "qty": 2}, {"gubun": "크로스바", "item": "크로스바-혼다(레드)", "qty": 1}], "relist": [{"post_no": "IF182", "status": "예약", "trim_name": "포르자350", "plate": "경기김포하7037", "mileage": 8705, "box": "탑박스", "key_info": "스마트키 1개, 시트키 2개, 탑박스키 2개 보유", "maintenance": "오일, 앞패드, 리어패드, 리어타이어 교환 완료", "exterior": "커버류 기스, 까짐 및 계기판 화면 번짐 증상 있으며, 주행 시 미세한 털림 있음", "ship_date": null}, {"post_no": "IF186", "status": "재리스 대기", "trim_name": "존테스368G", "plate": "경기김포하6612", "mileage": 11745, "box": "레인보우", "key_info": "스마트키 1개,  탑박스키 2개", "maintenance": "오일 교환", "exterior": "커버류 기스 및 깨짐 있으며, 주행 시 특이사항 없음", "ship_date": null}, {"post_no": "IF185", "status": "재리스 대기", "trim_name": "PCX-A", "plate": "1오87178", "mileage": 5515, "box": "레인보우", "key_info": "스마트키 2개, 시트키 2개, 탑박스키 2개 보유", "maintenance": "오일, 앞패드, 리어패드 교환 완료", "exterior": "커버류 기스 및 깨짐 있으며, 주행 시 미세한 틀어짐 현상 있음", "ship_date": null}, {"post_no": "IF174", "status": "재리스 대기", "trim_name": "포르자350", "plate": "경기김포차7639", "mileage": 542, "box": "탑박스", "key_info": "스마트키 2개, 시트키 2개, 탑박스키 2개 보유", "maintenance": null, "exterior": "커버류 생활기스 외 특이사항 없음", "ship_date": null}], "materials": [{"gubun": "배달통", "item": "탑박스", "cms_stock": -1215, "used30": 205}, {"gubun": "배달통", "item": "포도모빌리티 110리터", "cms_stock": -532, "used30": 87}, {"gubun": "배달통", "item": "레인보우(탑박스)", "cms_stock": -534, "used30": 87}, {"gubun": "배달통", "item": "탑박스 100L", "cms_stock": -31, "used30": 6}, {"gubun": "배달통", "item": "네스터70", "cms_stock": 24, "used30": 6}, {"gubun": "배달통", "item": "더탑박스(EPP)", "cms_stock": -116, "used30": 5}, {"gubun": "배달통", "item": "토투86", "cms_stock": -4, "used30": 5}, {"gubun": "배달통", "item": "레인보우 100L", "cms_stock": 4, "used30": 4}, {"gubun": "배달통", "item": "토투62", "cms_stock": 27, "used30": 1}, {"gubun": "셋팅품목", "item": "거치대(몬스터)", "cms_stock": -2454, "used30": 403}, {"gubun": "셋팅품목", "item": "트래커", "cms_stock": -1621, "used30": 369}, {"gubun": "셋팅품목", "item": "스마트태그(솔루엠)", "cms_stock": -458, "used30": 35}, {"gubun": "셋팅품목", "item": "에스원", "cms_stock": -93, "used30": 1}, {"gubun": "탑박스 브라켓", "item": "포르자750", "cms_stock": 0, "used30": 0}, {"gubun": "탑박스 브라켓", "item": "PCX(알존)", "cms_stock": 55, "used30": 0}, {"gubun": "탑박스 브라켓", "item": "NMAX(영우)", "cms_stock": 60, "used30": 0}, {"gubun": "탑박스 브라켓", "item": "포르자(알존)", "cms_stock": 20, "used30": 0}, {"gubun": "탑박스 브라켓", "item": "ADV(알존)", "cms_stock": 21, "used30": 0}, {"gubun": "탑박스 브라켓", "item": "XMAX(알존)", "cms_stock": 7, "used30": 0}, {"gubun": "탑박스 브라켓", "item": "ADV750", "cms_stock": 0, "used30": 0}, {"gubun": "탑박스 브라켓", "item": "슈퍼커브(알존)", "cms_stock": 1, "used30": 0}, {"gubun": "탑박스 브라켓", "item": "존테스368G", "cms_stock": 5, "used30": 0}, {"gubun": "슬라이드 짐대", "item": "포르자(우일)", "cms_stock": 24, "used30": 0}, {"gubun": "슬라이드 짐대", "item": "CB115", "cms_stock": 0, "used30": 0}, {"gubun": "슬라이드 짐대", "item": "PCX(우일)", "cms_stock": 61, "used30": 0}, {"gubun": "슬라이드 짐대", "item": "VF100", "cms_stock": 2, "used30": 0}, {"gubun": "슬라이드 짐대", "item": "ADV(우일)", "cms_stock": 24, "used30": 0}, {"gubun": "슬라이드 짐대", "item": "XMAX(우일)", "cms_stock": 28, "used30": 0}, {"gubun": "슬라이드 짐대", "item": "NMAX(우일)", "cms_stock": 55, "used30": 0}, {"gubun": "스크린", "item": "PCX(영우)", "cms_stock": -935, "used30": 177}, {"gubun": "스크린", "item": "NMAX(영우)", "cms_stock": -400, "used30": 74}, {"gubun": "크로스바", "item": "크로스바-혼다(블랙)", "cms_stock": -936, "used30": 201}, {"gubun": "크로스바", "item": "크로스바-NMAX(블랙)", "cms_stock": -221, "used30": 53}, {"gubun": "크로스바", "item": "크로스바-혼다(옐로우)", "cms_stock": 73, "used30": 49}, {"gubun": "크로스바", "item": "크로스바-혼다(레드)", "cms_stock": 98, "used30": 37}, {"gubun": "크로스바", "item": "크로스바-혼다(블루)", "cms_stock": 193, "used30": 24}, {"gubun": "크로스바", "item": "크로스바-XMAX(블랙)", "cms_stock": 81, "used30": 15}, {"gubun": "크로스바", "item": "크로스바-NMAX(레드)", "cms_stock": 98, "used30": 9}, {"gubun": "크로스바", "item": "크로스바-NMAX(블루)", "cms_stock": 106, "used30": 8}, {"gubun": "크로스바", "item": "크로스바-NMAX(옐로우)", "cms_stock": 110, "used30": 6}, {"gubun": "크로스바", "item": "크로스바-XMAX(레드)", "cms_stock": 173, "used30": 2}, {"gubun": "크로스바", "item": "크로스바-XMAX(블루)", "cms_stock": 167, "used30": 2}, {"gubun": "크로스바", "item": "크로스바-XMAX(옐로우)", "cms_stock": 178, "used30": 0}], "trend": [{"month": "2025-12", "total_cnt": 292, "box_qty": 0, "crossbar_qty": 0}, {"month": "2026-01", "total_cnt": 327, "box_qty": 0, "crossbar_qty": 0}, {"month": "2026-02", "total_cnt": 324, "box_qty": 0, "crossbar_qty": 0}, {"month": "2026-03", "total_cnt": 413, "box_qty": 0, "crossbar_qty": 0}, {"month": "2026-04", "total_cnt": 307, "box_qty": 188, "crossbar_qty": 188}, {"month": "2026-05", "total_cnt": 296, "box_qty": 225, "crossbar_qty": 225}, {"month": "2026-06", "total_cnt": 273, "box_qty": 205, "crossbar_qty": 205}, {"month": "2026-07", "total_cnt": 417, "box_qty": 357, "crossbar_qty": 356}, {"month": "2026-08", "total_cnt": 398, "box_qty": 341, "crossbar_qty": 341}, {"month": "2026-09", "total_cnt": 370, "box_qty": 334, "crossbar_qty": 334}, {"month": "2026-10", "total_cnt": 331, "box_qty": 304, "crossbar_qty": 304}, {"month": "2026-11", "total_cnt": 245, "box_qty": 236, "crossbar_qty": 236}], "returns_unreg": [{"return_date": null, "apply_date": "2026-04-04", "client": "대전동구중앙허브(바로고)", "plate": "경기김포하3978", "chassis6": "300721", "model": "PCX125", "insu_end": "2027-03-31", "detail_id": 811}, {"return_date": "2026-04-08", "apply_date": "2026-04-06", "client": "청라동부리스(콜고)", "plate": "경기김포하4017", "chassis6": "301521", "model": "PCX125", "insu_end": "2026-04-30", "detail_id": 2120}, {"return_date": "2026-04-13", "apply_date": "2026-06-20", "client": "로얄컴퍼니(생각대로)", "plate": "경기김포차5863", "chassis6": "301348", "model": "PCX125", "insu_end": "2026-06-20", "detail_id": 2650}, {"return_date": "2026-04-23", "apply_date": "2026-07-29", "client": "개인고객", "plate": "경기김포하4604", "chassis6": "403735", "model": "포르자", "insu_end": null, "detail_id": 1891}, {"return_date": "2026-04-29", "apply_date": "2026-07-14", "client": "쿠팡비호라이더스", "plate": "경기김포하4516", "chassis6": "001342", "model": "NMAX", "insu_end": "2026-07-14", "detail_id": 2512}, {"return_date": "2026-05-07", "apply_date": "2026-07-25", "client": "딜리온청주", "plate": "경기김포차6015", "chassis6": "305984", "model": "PCX125", "insu_end": "2026-07-25", "detail_id": 1518}, {"return_date": "2026-05-07", "apply_date": "2026-05-30", "client": "하당2허브(바로고)", "plate": "경기김포하4286", "chassis6": "401398", "model": "포르자", "insu_end": "2026-05-08", "detail_id": 3896}, {"return_date": "2026-10-16", "apply_date": "2026-10-13", "client": "청주성안지사(부릉)", "plate": "경기김포차6625", "chassis6": "602937", "model": "존테스", "insu_end": "2026-11-12", "detail_id": 4420}, {"return_date": "2026-10-27", "apply_date": "2026-10-26", "client": "쿠팡성남대포", "plate": "경기김포하7088", "chassis6": "616087", "model": "존테스", "insu_end": "2026-11-02", "detail_id": 5882}, {"return_date": "2026-10-29", "apply_date": "2026-10-30", "client": "이천감곡허브(바로고)", "plate": "경기김포차6937", "chassis6": "010188", "model": "NMAX", "insu_end": "2026-11-08", "detail_id": 3048}, {"return_date": "2026-11-06", "apply_date": "2026-10-27", "client": "서대문창천2지점(부릉)", "plate": "경기김포하5562", "chassis6": "406916", "model": "커브", "insu_end": "2026-11-20", "detail_id": 1144}, {"return_date": "2026-11-11", "apply_date": "2026-11-10", "client": "개인고객", "plate": "경기김포하6856", "chassis6": "011480", "model": "NMAX", "insu_end": "2026-11-30", "detail_id": 5212}, {"return_date": "2026-11-19", "apply_date": "2026-10-15", "client": "일산중산허브(바로고)", "plate": "경기김포하6072", "chassis6": "401963", "model": "PCX125", "insu_end": "2026-12-20", "detail_id": 3049}, {"return_date": "2026-11-19", "apply_date": "2026-10-15", "client": "일산중산허브(바로고)", "plate": "경기김포하5416", "chassis6": "404633", "model": "포르자", "insu_end": "2026-11-28", "detail_id": 1386}, {"return_date": "2026-11-20", "apply_date": "2026-11-21", "client": "양평지사(모아콜)", "plate": "경기김포하6916", "chassis6": "006160", "model": "XMAX", "insu_end": "2027-07-15", "detail_id": 5475}, {"return_date": "2026-11-23", "apply_date": "2026-11-23", "client": "쿠팡파주유제이", "plate": "경기김포차7370", "chassis6": "502301", "model": "포르자", "insu_end": "2026-12-05", "detail_id": 5314}, {"return_date": "2026-11-23", "apply_date": "2026-11-23", "client": "쿠팡파주유제이", "plate": "경기김포차7369", "chassis6": "501989", "model": "포르자", "insu_end": "2026-12-05", "detail_id": 5315}, {"return_date": "2026-11-23", "apply_date": "2026-11-23", "client": "쿠팡파주유제이", "plate": "경기김포차7414", "chassis6": "502166", "model": "포르자", "insu_end": "2026-12-11", "detail_id": 5418}, {"return_date": "2026-11-23", "apply_date": "2026-11-24", "client": "생각대로하남지점", "plate": "경기김포차7406", "chassis6": "502144", "model": "포르자", "insu_end": "2026-12-11", "detail_id": 5427}, {"return_date": "2026-11-25", "apply_date": "2026-11-26", "client": "왓따속초점(모아콜)", "plate": "경기김포차7368", "chassis6": "011775", "model": "NMAX", "insu_end": "2026-12-05", "detail_id": 5316}], "returns": [{"return_date": "2026-10-27", "apply_date": "2026-10-26", "client": "쿠팡성남대포", "plate": "경기김포하7037", "chassis6": "501464", "model": "포르자", "mileage": 8705, "insu_end": "2026-11-25", "relist_status": "예약", "detail_id": 5727}, {"return_date": "2026-11-24", "apply_date": "2026-11-19", "client": "개인고객", "plate": "1오87178", "chassis6": "415694", "model": "PCX125", "mileage": 5515, "insu_end": "2026-12-13", "relist_status": "재리스 대기", "detail_id": 6852}, {"return_date": "2026-11-09", "apply_date": "2026-11-10", "client": "배민수원골든타임", "plate": "경기김포차7639", "chassis6": "503584", "model": "포르자", "mileage": 542, "insu_end": "2026-11-30", "relist_status": "재리스 대기", "detail_id": 7820}, {"return_date": "2026-10-27", "apply_date": "2026-10-26", "client": "쿠팡성남대포", "plate": "경기김포하6612", "chassis6": "615830", "model": "존테스", "mileage": 11745, "insu_end": "2026-11-15", "relist_status": "재리스 대기", "detail_id": 5728}], "ret_summary": [{"cnt": 205}], "ret_model": [{"model": "PCX125", "cnt": 73}, {"model": "NMAX", "cnt": 37}, {"model": "포르자", "cnt": 33}, {"model": "존테스", "cnt": 24}, {"model": "XMAX", "cnt": 21}, {"model": "ADV", "cnt": 6}, {"model": "VF", "cnt": 5}, {"model": "커브", "cnt": 3}, {"model": "UHR125", "cnt": 1}, {"model": "시티", "cnt": 1}, {"model": "크루심", "cnt": 1}], "boxes_m": [{"month": "2026-04", "item": "탑박스", "qty": 87}, {"month": "2026-04", "item": "포도모빌리티 110리터", "qty": 46}, {"month": "2026-04", "item": "레인보우(탑박스)", "qty": 36}, {"month": "2026-04", "item": "더탑박스(EPP)", "qty": 17}, {"month": "2026-04", "item": "탑박스 100L", "qty": 1}, {"month": "2026-04", "item": "레인보우 100L", "qty": 1}, {"month": "2026-05", "item": "탑박스", "qty": 89}, {"month": "2026-05", "item": "포도모빌리티 110리터", "qty": 63}, {"month": "2026-05", "item": "레인보우(탑박스)", "qty": 52}, {"month": "2026-05", "item": "더탑박스(EPP)", "qty": 13}, {"month": "2026-05", "item": "탑박스 100L", "qty": 8}, {"month": "2026-06", "item": "탑박스", "qty": 87}, {"month": "2026-06", "item": "레인보우(탑박스)", "qty": 52}, {"month": "2026-06", "item": "포도모빌리티 110리터", "qty": 49}, {"month": "2026-06", "item": "탑박스 100L", "qty": 8}, {"month": "2026-06", "item": "더탑박스(EPP)", "qty": 7}, {"month": "2026-06", "item": "레인보우 100L", "qty": 2}, {"month": "2026-07", "item": "탑박스", "qty": 164}, {"month": "2026-07", "item": "포도모빌리티 110리터", "qty": 83}, {"month": "2026-07", "item": "레인보우(탑박스)", "qty": 79}, {"month": "2026-07", "item": "더탑박스(EPP)", "qty": 19}, {"month": "2026-07", "item": "탑박스 100L", "qty": 7}, {"month": "2026-07", "item": "레인보우 100L", "qty": 4}, {"month": "2026-07", "item": "네스터70", "qty": 1}, {"month": "2026-08", "item": "탑박스", "qty": 155}, {"month": "2026-08", "item": "레인보우(탑박스)", "qty": 72}, {"month": "2026-08", "item": "포도모빌리티 110리터", "qty": 72}, {"month": "2026-08", "item": "더탑박스(EPP)", "qty": 18}, {"month": "2026-08", "item": "토투86", "qty": 6}, {"month": "2026-08", "item": "레인보우 100L", "qty": 6}, {"month": "2026-08", "item": "탑박스 100L", "qty": 6}, {"month": "2026-08", "item": "네스터70", "qty": 5}, {"month": "2026-08", "item": "토투62", "qty": 1}, {"month": "2026-09", "item": "탑박스", "qty": 165}, {"month": "2026-09", "item": "레인보우(탑박스)", "qty": 73}, {"month": "2026-09", "item": "포도모빌리티 110리터", "qty": 64}, {"month": "2026-09", "item": "더탑박스(EPP)", "qty": 12}, {"month": "2026-09", "item": "탑박스 100L", "qty": 11}, {"month": "2026-09", "item": "레인보우 100L", "qty": 4}, {"month": "2026-09", "item": "네스터70", "qty": 4}, {"month": "2026-09", "item": "토투86", "qty": 1}, {"month": "2026-10", "item": "탑박스", "qty": 166}, {"month": "2026-10", "item": "포도모빌리티 110리터", "qty": 65}, {"month": "2026-10", "item": "레인보우(탑박스)", "qty": 48}, {"month": "2026-10", "item": "더탑박스(EPP)", "qty": 13}, {"month": "2026-10", "item": "네스터70", "qty": 4}, {"month": "2026-10", "item": "탑박스 100L", "qty": 4}, {"month": "2026-10", "item": "토투86", "qty": 2}, {"month": "2026-10", "item": "토투62", "qty": 1}, {"month": "2026-10", "item": "레인보우 100L", "qty": 1}, {"month": "2026-11", "item": "탑박스", "qty": 131}, {"month": "2026-11", "item": "레인보우(탑박스)", "qty": 47}, {"month": "2026-11", "item": "포도모빌리티 110리터", "qty": 43}, {"month": "2026-11", "item": "네스터70", "qty": 4}, {"month": "2026-11", "item": "토투86", "qty": 4}, {"month": "2026-11", "item": "탑박스 100L", "qty": 3}, {"month": "2026-11", "item": "레인보우 100L", "qty": 2}, {"month": "2026-11", "item": "더탑박스(EPP)", "qty": 1}, {"month": "2026-11", "item": "토투62", "qty": 1}], "crossbars_m": [{"month": "2026-04", "item": "크로스바-혼다(블랙)", "qty": 103}, {"month": "2026-04", "item": "크로스바-NMAX(블랙)", "qty": 21}, {"month": "2026-04", "item": "크로스바-혼다(레드)", "qty": 17}, {"month": "2026-04", "item": "크로스바-혼다(옐로우)", "qty": 14}, {"month": "2026-04", "item": "크로스바-혼다(블루)", "qty": 11}, {"month": "2026-04", "item": "크로스바-NMAX(옐로우)", "qty": 7}, {"month": "2026-04", "item": "크로스바-XMAX(블랙)", "qty": 6}, {"month": "2026-04", "item": "크로스바-NMAX(레드)", "qty": 5}, {"month": "2026-04", "item": "크로스바-NMAX(블루)", "qty": 2}, {"month": "2026-04", "item": "크로스바-XMAX(블루)", "qty": 2}, {"month": "2026-05", "item": "크로스바-혼다(블랙)", "qty": 129}, {"month": "2026-05", "item": "크로스바-혼다(옐로우)", "qty": 23}, {"month": "2026-05", "item": "크로스바-NMAX(블랙)", "qty": 21}, {"month": "2026-05", "item": "크로스바-혼다(레드)", "qty": 18}, {"month": "2026-05", "item": "크로스바-혼다(블루)", "qty": 9}, {"month": "2026-05", "item": "크로스바-XMAX(블랙)", "qty": 6}, {"month": "2026-05", "item": "크로스바-NMAX(블루)", "qty": 6}, {"month": "2026-05", "item": "크로스바-NMAX(옐로우)", "qty": 6}, {"month": "2026-05", "item": "크로스바-NMAX(레드)", "qty": 3}, {"month": "2026-05", "item": "크로스바-XMAX(옐로우)", "qty": 2}, {"month": "2026-05", "item": "크로스바-XMAX(레드)", "qty": 1}, {"month": "2026-05", "item": "크로스바-XMAX(블루)", "qty": 1}, {"month": "2026-06", "item": "크로스바-혼다(블랙)", "qty": 86}, {"month": "2026-06", "item": "크로스바-혼다(옐로우)", "qty": 31}, {"month": "2026-06", "item": "크로스바-혼다(레드)", "qty": 28}, {"month": "2026-06", "item": "크로스바-NMAX(블랙)", "qty": 20}, {"month": "2026-06", "item": "크로스바-혼다(블루)", "qty": 14}, {"month": "2026-06", "item": "크로스바-XMAX(블랙)", "qty": 10}, {"month": "2026-06", "item": "크로스바-NMAX(옐로우)", "qty": 4}, {"month": "2026-06", "item": "크로스바-NMAX(블루)", "qty": 4}, {"month": "2026-06", "item": "크로스바-XMAX(옐로우)", "qty": 3}, {"month": "2026-06", "item": "크로스바-XMAX(블루)", "qty": 2}, {"month": "2026-06", "item": "크로스바-NMAX(레드)", "qty": 2}, {"month": "2026-06", "item": "크로스바-XMAX(레드)", "qty": 1}, {"month": "2026-07", "item": "크로스바-혼다(블랙)", "qty": 155}, {"month": "2026-07", "item": "크로스바-NMAX(블랙)", "qty": 61}, {"month": "2026-07", "item": "크로스바-혼다(옐로우)", "qty": 42}, {"month": "2026-07", "item": "크로스바-혼다(레드)", "qty": 33}, {"month": "2026-07", "item": "크로스바-혼다(블루)", "qty": 18}, {"month": "2026-07", "item": "크로스바-NMAX(레드)", "qty": 14}, {"month": "2026-07", "item": "크로스바-XMAX(블랙)", "qty": 10}, {"month": "2026-07", "item": "크로스바-NMAX(블루)", "qty": 10}, {"month": "2026-07", "item": "크로스바-NMAX(옐로우)", "qty": 6}, {"month": "2026-07", "item": "크로스바-XMAX(레드)", "qty": 4}, {"month": "2026-07", "item": "크로스바-XMAX(블루)", "qty": 2}, {"month": "2026-07", "item": "크로스바-XMAX(옐로우)", "qty": 1}, {"month": "2026-08", "item": "크로스바-혼다(블랙)", "qty": 162}, {"month": "2026-08", "item": "크로스바-NMAX(블랙)", "qty": 49}, {"month": "2026-08", "item": "크로스바-혼다(레드)", "qty": 38}, {"month": "2026-08", "item": "크로스바-혼다(옐로우)", "qty": 34}, {"month": "2026-08", "item": "크로스바-혼다(블루)", "qty": 22}, {"month": "2026-08", "item": "크로스바-XMAX(블랙)", "qty": 13}, {"month": "2026-08", "item": "크로스바-NMAX(블루)", "qty": 5}, {"month": "2026-08", "item": "크로스바-NMAX(레드)", "qty": 5}, {"month": "2026-08", "item": "크로스바-XMAX(레드)", "qty": 5}, {"month": "2026-08", "item": "크로스바-NMAX(옐로우)", "qty": 4}, {"month": "2026-08", "item": "크로스바-XMAX(블루)", "qty": 2}, {"month": "2026-08", "item": "크로스바-XMAX(옐로우)", "qty": 2}, {"month": "2026-09", "item": "크로스바-혼다(블랙)", "qty": 159}, {"month": "2026-09", "item": "크로스바-NMAX(블랙)", "qty": 60}, {"month": "2026-09", "item": "크로스바-혼다(옐로우)", "qty": 29}, {"month": "2026-09", "item": "크로스바-혼다(블루)", "qty": 25}, {"month": "2026-09", "item": "크로스바-혼다(레드)", "qty": 19}, {"month": "2026-09", "item": "크로스바-XMAX(블랙)", "qty": 17}, {"month": "2026-09", "item": "크로스바-NMAX(레드)", "qty": 10}, {"month": "2026-09", "item": "크로스바-NMAX(블루)", "qty": 7}, {"month": "2026-09", "item": "크로스바-NMAX(옐로우)", "qty": 3}, {"month": "2026-09", "item": "크로스바-XMAX(블루)", "qty": 2}, {"month": "2026-09", "item": "크로스바-XMAX(레드)", "qty": 2}, {"month": "2026-09", "item": "크로스바-XMAX(옐로우)", "qty": 1}, {"month": "2026-10", "item": "크로스바-혼다(블랙)", "qty": 139}, {"month": "2026-10", "item": "크로스바-NMAX(블랙)", "qty": 54}, {"month": "2026-10", "item": "크로스바-혼다(레드)", "qty": 36}, {"month": "2026-10", "item": "크로스바-혼다(옐로우)", "qty": 27}, {"month": "2026-10", "item": "크로스바-XMAX(블랙)", "qty": 17}, {"month": "2026-10", "item": "크로스바-혼다(블루)", "qty": 12}, {"month": "2026-10", "item": "크로스바-NMAX(레드)", "qty": 7}, {"month": "2026-10", "item": "크로스바-XMAX(블루)", "qty": 3}, {"month": "2026-10", "item": "크로스바-NMAX(블루)", "qty": 3}, {"month": "2026-10", "item": "크로스바-NMAX(옐로우)", "qty": 3}, {"month": "2026-10", "item": "크로스바-XMAX(레드)", "qty": 2}, {"month": "2026-10", "item": "크로스바-XMAX(옐로우)", "qty": 1}, {"month": "2026-11", "item": "크로스바-혼다(블랙)", "qty": 119}, {"month": "2026-11", "item": "크로스바-혼다(옐로우)", "qty": 34}, {"month": "2026-11", "item": "크로스바-혼다(레드)", "qty": 25}, {"month": "2026-11", "item": "크로스바-NMAX(블랙)", "qty": 24}, {"month": "2026-11", "item": "크로스바-혼다(블루)", "qty": 10}, {"month": "2026-11", "item": "크로스바-XMAX(블랙)", "qty": 9}, {"month": "2026-11", "item": "크로스바-NMAX(블루)", "qty": 5}, {"month": "2026-11", "item": "크로스바-NMAX(레드)", "qty": 3}, {"month": "2026-11", "item": "크로스바-NMAX(옐로우)", "qty": 3}, {"month": "2026-11", "item": "크로스바-XMAX(레드)", "qty": 2}, {"month": "2026-11", "item": "크로스바-XMAX(블루)", "qty": 2}], "price": [{"model": "PCX-A", "part": "스마트키", "price": 59290, "labor": 15710, "sort": 1, "id": "p001"}, {"model": "포르자", "part": "스마트키", "price": 72160, "labor": 12840, "sort": 2, "id": "p002"}, {"model": "NMAX", "part": "스마트키", "price": 210000, "labor": 9240, "sort": 3, "id": "p003"}, {"model": "XMAX", "part": "스마트키", "price": 210000, "labor": 12980, "sort": 4, "id": "p004"}, {"model": "PCX-A", "part": "시트키", "price": 15000, "labor": 35000, "sort": 5, "id": "p005"}, {"model": "포르자", "part": "시트키", "price": 50000, "labor": 37790, "sort": 6, "id": "p006"}, {"model": "NMAX", "part": "시트키", "price": 50000, "labor": 37680, "sort": 7, "id": "p007"}, {"model": "XMAX", "part": "시트키", "price": 50000, "labor": 38940, "sort": 8, "id": "p008"}, {"model": "PCX-A", "part": "사이드미러좌측", "price": 10890, "labor": 9240, "sort": 9, "id": "p009"}, {"model": "포르자", "part": "사이드미러좌측", "price": 16170, "labor": 32450, "sort": 10, "id": "p010"}, {"model": "NMAX", "part": "사이드미러좌측", "price": 12300, "labor": 9240, "sort": 11, "id": "p011"}, {"model": "PCX-A", "part": "사이드미러우측", "price": 10890, "labor": 9240, "sort": 12, "id": "p012"}, {"model": "포르자", "part": "사이드미러우측", "price": 16170, "labor": 32450, "sort": 13, "id": "p013"}, {"model": "NMAX", "part": "사이드미러우측", "price": 12300, "labor": 9240, "sort": 14, "id": "p014"}, {"model": "PCX-A", "part": "스크린", "price": 39490, "labor": 9240, "sort": 15, "id": "p015"}, {"model": "포르자", "part": "스크린", "price": 397980, "labor": 84370, "sort": 16, "id": "p016"}, {"model": "NMAX", "part": "스크린", "price": 42900, "labor": 4620, "sort": 17, "id": "p017"}, {"model": "PCX-A", "part": "좌측어퍼카울", "price": 41800, "labor": 55440, "sort": 18, "id": "p018"}, {"model": "포르자", "part": "좌측어퍼카울", "price": 55880, "labor": 32450, "sort": 19, "id": "p019"}, {"model": "NMAX", "part": "좌측어퍼카울", "price": 25300, "labor": 46200, "sort": 20, "id": "p020"}, {"model": "PCX-A", "part": "우측어퍼카울", "price": 41800, "labor": 55440, "sort": 21, "id": "p021"}, {"model": "포르자", "part": "우측어퍼카울", "price": 55880, "labor": 32450, "sort": 22, "id": "p022"}, {"model": "NMAX", "part": "우측어퍼카울", "price": 25300, "labor": 46200, "sort": 23, "id": "p023"}, {"model": "PCX-A", "part": "좌측사이드커버", "price": 26070, "labor": 23100, "sort": 24, "id": "p024"}, {"model": "포르자", "part": "좌측사이드커버", "price": 33440, "labor": 32450, "sort": 25, "id": "p025"}, {"model": "NMAX", "part": "좌측사이드커버", "price": 22000, "labor": 27720, "sort": 26, "id": "p026"}, {"model": "PCX-A", "part": "우측사이드커버", "price": 26070, "labor": 23100, "sort": 27, "id": "p027"}, {"model": "포르자", "part": "우측사이드커버", "price": 33440, "labor": 32450, "sort": 28, "id": "p028"}, {"model": "NMAX", "part": "우측사이드커버", "price": 22000, "labor": 27720, "sort": 29, "id": "p029"}, {"model": "PCX-A", "part": "좌측바디커버", "price": 47850, "labor": 36960, "sort": 30, "id": "p030"}, {"model": "포르자", "part": "좌측바디커버", "price": 67760, "labor": 58410, "sort": 31, "id": "p031"}, {"model": "NMAX", "part": "좌측바디커버", "price": 18300, "labor": 23100, "sort": 32, "id": "p032"}, {"model": "PCX-A", "part": "우측바디커버", "price": 47850, "labor": 36960, "sort": 33, "id": "p033"}, {"model": "포르자", "part": "우측바디커버", "price": 67760, "labor": 58410, "sort": 34, "id": "p034"}, {"model": "NMAX", "part": "우측바디커버", "price": 18300, "labor": 23100, "sort": 35, "id": "p035"}, {"model": "PCX-A", "part": "가니쉬", "price": 26290, "labor": 4620, "sort": 36, "id": "p036"}, {"model": "포르자", "part": "가니쉬", "price": 31020, "labor": 19470, "sort": 37, "id": "p037"}, {"model": "NMAX", "part": "가니쉬", "price": 19100, "labor": 9240, "sort": 38, "id": "p038"}, {"model": "PCX-A", "part": "시트", "price": 81070, "labor": 23100, "sort": 39, "id": "p039"}, {"model": "포르자", "part": "시트", "price": 270160, "labor": 45430, "sort": 40, "id": "p040"}, {"model": "NMAX", "part": "시트 세트/시트 박스", "price": 159600, "labor": 46200, "sort": 41, "id": "p041"}, {"model": "PCX-A", "part": "주유구관절", "price": 5170, "labor": 92400, "sort": 42, "id": "p042"}, {"model": "포르자", "part": "주유구커버카본", "price": 25000, "labor": 103000, "sort": 43, "id": "p043"}, {"model": "NMAX", "part": "주유구관절", "price": 10500, "labor": 92400, "sort": 44, "id": "p044"}, {"model": "PCX-A", "part": "프론트 휀다", "price": 38940, "labor": 36960, "sort": 45, "id": "p045"}, {"model": "포르자", "part": "프론트 휀다", "price": 49390, "labor": 38940, "sort": 46, "id": "p046"}, {"model": "NMAX", "part": "프론트 휀다", "price": 15100, "labor": 23100, "sort": 47, "id": "p047"}, {"model": "XMAX", "part": "프론트 휀다", "price": 17500, "labor": 38940, "sort": 48, "id": "p048"}, {"model": "PCX-A", "part": "리어휀다", "price": 23320, "labor": 36960, "sort": 49, "id": "p049"}, {"model": "포르자", "part": "리어휀다", "price": 28050, "labor": 64900, "sort": 50, "id": "p050"}, {"model": "NMAX", "part": "리어휀다", "price": 20200, "labor": 46200, "sort": 51, "id": "p051"}, {"model": "PCX-A", "part": "머플러커버", "price": 34210, "labor": 4620, "sort": 52, "id": "p052"}, {"model": "포르자", "part": "머플러커버", "price": 42350, "labor": 19470, "sort": 53, "id": "p053"}, {"model": "NMAX", "part": "머플러커버", "price": 14900, "labor": 4620, "sort": 54, "id": "p054"}, {"model": "XMAX", "part": "머플러커버 세트", "price": 81300, "labor": 32450, "sort": 55, "id": "p055"}, {"model": "PCX-A", "part": "머플러", "price": 443080, "labor": 23100, "sort": 56, "id": "p056"}, {"model": "포르자", "part": "좌측 발판", "price": 31020, "labor": 64900, "sort": 57, "id": "p057"}, {"model": "NMAX", "part": "좌측 발판", "price": 30700, "labor": 46200, "sort": 58, "id": "p058"}, {"model": "PCX-A", "part": "좌측발판", "price": 16170, "labor": 69300, "sort": 59, "id": "p059"}, {"model": "포르자", "part": "우측 발판", "price": 31020, "labor": 64900, "sort": 60, "id": "p060"}, {"model": "NMAX", "part": "우측 발판", "price": 30700, "labor": 46200, "sort": 61, "id": "p061"}, {"model": "PCX-A", "part": "우측발판", "price": 16170, "labor": 69300, "sort": 62, "id": "p062"}, {"model": "포르자", "part": "메인 스탠드", "price": 32120, "labor": 32450, "sort": 63, "id": "p063"}, {"model": "NMAX", "part": "메인 스탠드", "price": 35800, "labor": 23100, "sort": 64, "id": "p064"}, {"model": "PCX-A", "part": "메인스탠드", "price": 34320, "labor": 32340, "sort": 65, "id": "p065"}, {"model": "포르자", "part": "사이드 스탠드", "price": 8140, "labor": 32450, "sort": 66, "id": "p066"}, {"model": "NMAX", "part": "사이드 스탠드", "price": 7600, "labor": 18480, "sort": 67, "id": "p067"}, {"model": "PCX-A", "part": "사이드스탠드", "price": 8470, "labor": 23100, "sort": 68, "id": "p068"}, {"model": "포르자", "part": "헤드라이트", "price": 464530, "labor": 129800, "sort": 69, "id": "p069"}, {"model": "NMAX", "part": "헤드라이트", "price": 366900, "labor": 92400, "sort": 70, "id": "p070"}, {"model": "PCX-A", "part": "헤드라이트", "price": 407000, "labor": 69300, "sort": 71, "id": "p071"}, {"model": "포르자", "part": "좌측 레버", "price": 9020, "labor": 12980, "sort": 72, "id": "p072"}, {"model": "NMAX", "part": "좌측 레버", "price": 9500, "labor": 4620, "sort": 73, "id": "p073"}, {"model": "PCX-A", "part": "메타판넬", "price": 6490, "labor": 13860, "sort": 74, "id": "p074"}, {"model": "포르자", "part": "우측 레버", "price": 9020, "labor": 12980, "sort": 75, "id": "p075"}, {"model": "NMAX", "part": "우측 레버", "price": 9500, "labor": 4620, "sort": 76, "id": "p076"}, {"model": "PCX-A", "part": "좌측어퍼사이드", "price": 14630, "labor": 9240, "sort": 77, "id": "p077"}, {"model": "포르자", "part": "언더커버", "price": 24200, "labor": 64900, "sort": 78, "id": "p078"}, {"model": "NMAX", "part": "좌측 레그쉴드 커버", "price": 28400, "labor": 13860, "sort": 79, "id": "p079"}, {"model": "XMAX", "part": "머플러", "price": 1168100, "labor": 38940, "sort": 80, "id": "p080"}, {"model": "PCX-A", "part": "우측어퍼사이드", "price": 14630, "labor": 9240, "sort": 81, "id": "p081"}, {"model": "포르자", "part": "로우커버", "price": 15840, "labor": 64900, "sort": 82, "id": "p082"}, {"model": "NMAX", "part": "우측 레그쉴드 커버", "price": 28400, "labor": 13860, "sort": 83, "id": "p083"}, {"model": "PCX-A", "part": "이너박스", "price": 15950, "labor": 69300, "sort": 84, "id": "p084"}, {"model": "포르자", "part": "머플러", "price": 713790, "labor": 32450, "sort": 85, "id": "p085"}, {"model": "NMAX", "part": "머플러", "price": 589800, "labor": 32340, "sort": 86, "id": "p086"}, {"model": "PCX-A", "part": "좌측레바", "price": 14080, "labor": 9240, "sort": 87, "id": "p087"}, {"model": "포르자", "part": "테일라이트", "price": 321750, "labor": 84370, "sort": 88, "id": "p088"}, {"model": "NMAX", "part": "테일라이트", "price": 164500, "labor": 46200, "sort": 89, "id": "p089"}, {"model": "XMAX", "part": "에어크리너필터 커버", "price": 28400, "labor": 25960, "sort": 90, "id": "p090"}, {"model": "PCX-A", "part": "우측레바", "price": 14080, "labor": 9240, "sort": 91, "id": "p091"}, {"model": "포르자", "part": "좌측 이너 사이드 커버", "price": 14960, "labor": 38940, "sort": 92, "id": "p092"}, {"model": "NMAX", "part": "핸들바", "price": 77400, "labor": 69300, "sort": 93, "id": "p093"}, {"model": "XMAX", "part": "휀다 사이드 세트", "price": 33000, "labor": 38940, "sort": 94, "id": "p094"}, {"model": "PCX-A", "part": "로우커버", "price": 13200, "labor": 46200, "sort": 95, "id": "p095"}, {"model": "포르자", "part": "우측 이너 사이드 커버", "price": 14960, "labor": 38940, "sort": 96, "id": "p096"}, {"model": "NMAX", "part": "이너커버", "price": 16900, "labor": 46200, "sort": 97, "id": "p097"}, {"model": "PCX-A", "part": "언더커버", "price": 6160, "labor": 46200, "sort": 98, "id": "p098"}, {"model": "포르자", "part": "스크린 가드", "price": 38390, "labor": 25960, "sort": 99, "id": "p099"}, {"model": "NMAX", "part": "프론트 스테이 휀다", "price": 10200, "labor": 4620, "sort": 100, "id": "p100"}, {"model": "PCX-A", "part": "러귀지박스", "price": 42350, "labor": 32340, "sort": 101, "id": "p101"}, {"model": "포르자", "part": "핸들바", "price": 37400, "labor": 64900, "sort": 102, "id": "p102"}, {"model": "NMAX", "part": "테일라이트 커버", "price": 16000, "labor": 23100, "sort": 103, "id": "p103"}, {"model": "PCX-A", "part": "거치대", "price": 55000, "labor": 4620, "sort": 104, "id": "p104"}, {"model": "포르자", "part": "머플러커버작은부위", "price": 12870, "labor": 19470, "sort": 105, "id": "p105"}, {"model": "NMAX", "part": "좌측 센터 사이드 커버", "price": 30100, "labor": 13860, "sort": 106, "id": "p106"}, {"model": "PCX-A", "part": "무빙통", "price": 139000, "labor": 9240, "sort": 107, "id": "p107"}, {"model": "포르자", "part": "러귀지박스", "price": 49170, "labor": 64900, "sort": 108, "id": "p108"}, {"model": "NMAX", "part": "우측 센터 사이드 커버", "price": 30100, "labor": 13860, "sort": 109, "id": "p109"}, {"model": "PCX-A", "part": "EPP배달통", "price": 170000, "labor": 9240, "sort": 110, "id": "p110"}, {"model": "포르자", "part": "이너박스", "price": 58850, "labor": 129800, "sort": 111, "id": "p111"}, {"model": "NMAX", "part": "상단 핸들커버", "price": 8500, "labor": 9240, "sort": 112, "id": "p112"}, {"model": "PCX-A", "part": "알류미늄탑박스85L", "price": 150000, "labor": 13860, "sort": 113, "id": "p113"}, {"model": "포르자", "part": "메타판넬좌측가니쉬", "price": 10560, "labor": 19470, "sort": 114, "id": "p114"}, {"model": "NMAX", "part": "하단 핸들커버", "price": 7300, "labor": 18480, "sort": 115, "id": "p115"}, {"model": "PCX-A", "part": "레인보우탑박스85L", "price": 170000, "labor": 13860, "sort": 116, "id": "p116"}, {"model": "포르자", "part": "메타판넬우측가니쉬", "price": 10560, "labor": 19470, "sort": 117, "id": "p117"}, {"model": "NMAX", "part": "핸들 그립", "price": 3200, "labor": 4620, "sort": 118, "id": "p118"}, {"model": "PCX-A", "part": "알류미늄탑박스100L", "price": 170000, "labor": 13860, "sort": 119, "id": "p119"}, {"model": "포르자", "part": "좌측바디프론트커버", "price": 50050, "labor": 64900, "sort": 120, "id": "p120"}, {"model": "NMAX", "part": "쇼바 세트", "price": 79300, "labor": 46200, "sort": 121, "id": "p121"}, {"model": "PCX-A", "part": "레인보우탑박스100L", "price": 210000, "labor": 13860, "sort": 122, "id": "p122"}, {"model": "포르자", "part": "우측바디프론트커버", "price": 50050, "labor": 64900, "sort": 123, "id": "p123"}, {"model": "NMAX", "part": "계기판", "price": 347700, "labor": 92400, "sort": 124, "id": "p124"}, {"model": "PCX-A", "part": "테일라이트", "price": 183590, "labor": 46200, "sort": 125, "id": "p125"}, {"model": "포르자", "part": "좌측밸런스", "price": 5170, "labor": 6490, "sort": 126, "id": "p126"}, {"model": "NMAX", "part": "프론트 이너박스", "price": 25300, "labor": 92400, "sort": 127, "id": "p127"}, {"model": "PCX-A", "part": "핸들바", "price": 54560, "labor": 46200, "sort": 128, "id": "p128"}, {"model": "포르자", "part": "우측밸런스", "price": 5170, "labor": 6490, "sort": 129, "id": "p129"}, {"model": "NMAX", "part": "핸들 상단 커버", "price": 8500, "labor": 13860, "sort": 130, "id": "p130"}, {"model": "PCX-A", "part": "좌측밸런스", "price": 4510, "labor": 4620, "sort": 131, "id": "p131"}, {"model": "포르자", "part": "알류미늄탑박스85L", "price": 150000, "labor": 19470, "sort": 132, "id": "p132"}, {"model": "NMAX", "part": "핸들 상단 엠블럼 커버", "price": 2500, "labor": 4620, "sort": 133, "id": "p133"}, {"model": "PCX-A", "part": "우측밸런스", "price": 4510, "labor": 4620, "sort": 134, "id": "p134"}, {"model": "포르자", "part": "레인보우탑박스85L", "price": 170000, "labor": 19470, "sort": 135, "id": "p135"}, {"model": "NMAX", "part": "핸들 로우 커버", "price": 7300, "labor": 13860, "sort": 136, "id": "p136"}, {"model": "포르자", "part": "알류미늄탑박스100L", "price": 170000, "labor": 19470, "sort": 137, "id": "p137"}, {"model": "NMAX", "part": "러귀지 박스", "price": 48400, "labor": 69300, "sort": 138, "id": "p138"}, {"model": "포르자", "part": "레인보우탑박스100L", "price": 210000, "labor": 19470, "sort": 139, "id": "p139"}, {"model": "NMAX", "part": "시트", "price": 26400, "labor": 23100, "sort": 140, "id": "p140"}, {"model": "포르자", "part": "EPP배달통", "price": 170000, "labor": 12980, "sort": 141, "id": "p141"}, {"model": "NMAX", "part": "핸들", "price": 77400, "labor": 69300, "sort": 142, "id": "p142"}, {"model": "포르자", "part": "무빙통", "price": 139000, "labor": 12980, "sort": 143, "id": "p143"}, {"model": "포르자", "part": "거치대", "price": 55000, "labor": 6490, "sort": 144, "id": "p144"}, {"model": "포르자", "part": "스크린 방패커버", "price": 38390, "labor": 12980, "sort": 145, "id": "p145"}, {"model": "포르자", "part": "스마트키 (단품)", "price": 85000, "labor": null, "sort": 146, "id": "p146"}, {"model": "포르자", "part": "시트키1set (단품)", "price": 50000, "labor": null, "sort": 147, "id": "p147"}, {"model": "PCX-A", "part": "스마트키 (단품)", "price": 75000, "labor": null, "sort": 148, "id": "p148"}, {"model": "PCX-A", "part": "시트키1set (단품)", "price": 50000, "labor": null, "sort": 149, "id": "p149"}, {"model": "NMAX", "part": "스마트키 (단품)", "price": 210000, "labor": null, "sort": 150, "id": "p150"}, {"model": "XMAX", "part": "스마트키 (단품)", "price": 210000, "labor": null, "sort": 151, "id": "p151"}, {"model": "NMAX", "part": "시트키1set (단품)", "price": 50000, "labor": null, "sort": 152, "id": "p152"}, {"model": "XMAX", "part": "시트키1set (단품)", "price": 50000, "labor": null, "sort": 153, "id": "p153"}, {"model": "범용", "part": "탑박스키 (단품)", "price": 25000, "labor": null, "sort": 154, "id": "p154"}, {"model": "범용", "part": "거치대 (단품)", "price": 55000, "labor": null, "sort": 155, "id": "p155"}], "hidden": [{"detail_id": "1518", "plate": "경기김포차6015", "client": "딜리온청주", "model": "PCX125"}, {"detail_id": "1891", "plate": "경기김포하4604", "client": "개인고객", "model": "포르자"}, {"detail_id": "2120", "plate": "경기김포하4017", "client": "청라동부리스(콜고)", "model": "PCX125"}, {"detail_id": "2512", "plate": "경기김포하4516", "client": "쿠팡비호라이더스", "model": "NMAX"}, {"detail_id": "2650", "plate": "경기김포차5863", "client": "로얄컴퍼니(생각대로)", "model": "PCX125"}, {"detail_id": "3896", "plate": "경기김포하4286", "client": "하당2허브(바로고)", "model": "포르자"}, {"detail_id": "811", "plate": "경기김포하3978", "client": "대전동구중앙허브(바로고)", "model": "PCX125"}], "unreg_status": [{"id": "1144", "status": "작업중"}, {"id": "1386", "status": "작업중"}, {"id": "3048", "status": "작업중"}, {"id": "3049", "status": "작업중"}, {"id": "4420", "status": "작업중"}, {"id": "5212", "status": "작업중"}, {"id": "5314", "status": "작업중"}, {"id": "5315", "status": "작업중"}, {"id": "5418", "status": "작업중"}, {"id": "5427", "status": "작업중"}, {"id": "5475", "status": "작업중"}, {"id": "5882", "status": "작업중"}]};
+const API = "https://script.google.com/macros/s/AKfycbz4688iwbNPs7LnMo80rXtJchS1AfdKWP5ISoamBbC5hiG0GvNg8zzEdiiI-yI2C13-iQ/exec";
+const EDIT = API.startsWith('https://');
+const S = { prepDate: '', group: '배달통', ym: '', cbOpen: new Set(), cbOpenP: new Set(), model: 'PCX-A', q: '' };
+const $ = (id) => document.getElementById(id);
+const fmt = (v) => (v == null || v === '' ? '—' : Number(v).toLocaleString('ko-KR'));
+const won = (v) => (v == null || v === '' ? '—' : Number(v).toLocaleString('ko-KR') + '원');
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const dayText = (s) => { if (!s) return '—'; const d = new Date(s + 'T00:00:00'); return (d.getMonth() + 1) + '/' + d.getDate() + '(' + '일월화수목금토'[d.getDay()] + ')'; };
+const ymText = (ym) => { if (!ym) return '—'; const [y, m] = ym.split('-'); return y + '년 ' + Number(m) + '월'; };
+const COL = ['var(--c0)', 'var(--c1)', 'var(--c2)'];
+function td(tr, v, cls) { const c = el('td', cls, v == null || v === '' ? '—' : v); tr.appendChild(c); return c; }
+function kpis(box, items) { box.replaceChildren(...items.map(([l, v, s]) => { const c = el('div', 'card'); c.append(el('div', 'l', l), el('div', 'v', fmt(v)), el('div', 's', s || '')); return c; })); }
+function hbars(box, rows, label, segs, opts = {}) {
+  if (!rows.length) { box.replaceChildren(el('div', 'empty', opts.empty || '기록이 없습니다.')); return; }
+  const tot = (r) => segs.reduce((a, s) => a + (Number(r[s.k]) || 0), 0);
+  const max = opts.max || Math.max(...rows.map(tot), 1);
+  const wrap = el('div', 'bars');
+  rows.forEach((r) => {
+    const b = el('div', 'bar' + (opts.child ? ' child' : ''));
+    const lab = el('span', 'lab', label(r)); lab.title = label(r);
+    const trk = el('span', 'trk'); const fill = el('span', 'fill'); fill.style.width = (tot(r) / max * 100) + '%';
+    segs.forEach((s, i) => { const v = Number(r[s.k]) || 0; if (v > 0) { const p = el('span'); p.style.width = (v / (tot(r) || 1) * 100) + '%'; p.style.background = s.c || COL[i]; p.title = s.n + ' ' + fmt(v); fill.appendChild(p); } });
+    trk.appendChild(fill); b.append(lab, trk, el('span', 'num', fmt(tot(r)))); wrap.appendChild(b);
+  });
+  box.replaceChildren(wrap);
+}
+function vbars(box, rows, key, tick, segs, active, click) {
+  if (!rows.length) { box.replaceChildren(el('div', 'empty', '기록이 없습니다.')); return; }
+  const tot = (r) => segs.reduce((a, s) => a + (Number(r[s.k]) || 0), 0);
+  const max = Math.max(...rows.map(tot), 1);
+  const wrap = el('div', 'vbars');
+  rows.forEach((r) => {
+    const c = el('div', 'vcol' + (active && !active(r) ? ' dim' : '') + (click ? ' click' : ''));
+    c.title = segs.map((s) => s.n + ' ' + fmt(r[s.k])).join(' · ');
+    const st = el('div', 'stack'); st.style.height = (tot(r) / max * 85) + '%';
+    segs.forEach((s, i) => { const v = Number(r[s.k]) || 0; if (v > 0) { const p = el('div'); p.style.height = (v / (tot(r) || 1) * 100) + '%'; p.style.background = s.c || COL[i]; st.appendChild(p); } });
+    c.append(el('div', 'vv', fmt(tot(r))), st, el('div', 'x', tick(r[key])));
+    if (click) c.addEventListener('click', () => click(r));
+    wrap.appendChild(c);
+  });
+  box.replaceChildren(wrap);
+}
+function cbSplit(item) { const s = String(item).replace(/^크로스바\s*-?\s*/, '').trim(); const m = s.match(/^(.*?)\s*\((.*)\)\s*$/); return m ? { type: m[1] || '구형(단색)', color: m[2] } : { type: '기타', color: s || '기타' }; }
+function cbGroups(rows, key) { const m = new Map(); rows.forEach((r) => { const { type, color } = cbSplit(r.item); const g = m.get(type) || { type, v: 0, items: [] }; const v = Number(r[key]) || 0; g.v += v; g.items.push({ item: r.item, color, v }); m.set(type, g); }); return [...m.values()].map((g) => ({ ...g, items: g.items.sort((a, b) => b.v - a.v) })).sort((a, b) => b.v - a.v); }
+function cbChart(box, rows, key, openSet, color, rerender) {
+  const groups = cbGroups(rows, key);
+  if (!groups.length) { box.replaceChildren(el('div', 'empty', '기록이 없습니다.')); return; }
+  const max = Math.max(...groups.map((g) => g.v), 1);
+  const wrap = el('div', 'bars');
+  groups.forEach((g) => {
+    const open = openSet.has(g.type);
+    const b = el('div', 'bar'); const btn = el('button', 'tog', (open ? '− ' : '+ ') + g.type + ' (' + g.items.length + '색)');
+    btn.addEventListener('click', () => { open ? openSet.delete(g.type) : openSet.add(g.type); rerender(); });
+    const trk = el('span', 'trk'); const fill = el('span', 'fill'); fill.style.width = (g.v / max * 100) + '%'; const p = el('span'); p.style.width = '100%'; p.style.background = color; fill.appendChild(p); trk.appendChild(fill);
+    b.append(btn, trk, el('span', 'num', fmt(g.v))); wrap.appendChild(b);
+    if (open) g.items.forEach((it) => { const c = el('div', 'bar child'); const t2 = el('span', 'trk'); const f2 = el('span', 'fill'); f2.style.width = (it.v / max * 100) + '%'; const p2 = el('span'); p2.style.width = '100%'; p2.style.background = 'var(--c2)'; f2.appendChild(p2); t2.appendChild(f2); c.append(el('span', 'lab', it.color), t2, el('span', 'num', fmt(it.v))); wrap.appendChild(c); });
+  });
+  box.replaceChildren(wrap);
+}
+
+/* 탭 */
+document.querySelectorAll('.tab').forEach((b) => b.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach((x) => x.classList.toggle('on', x === b));
+  document.querySelectorAll('.page').forEach((p) => p.classList.toggle('on', p.id === 'p-' + b.dataset.t));
+  history.replaceState(null, '', '#' + b.dataset.t);
+}));
+const h = location.hash.slice(1); if (h) { const b = document.querySelector('.tab[data-t="' + h + '"]'); if (b) b.click(); }
+
+/* 출고 준비 */
+function renderPrep() {
+  const L = D.prep_list;
+  kpis($('prepKpis'), [['오늘 출고 예정', L.filter((r) => r.ship_date === D.meta.today).length, '출고완료 포함'], ['내일 출고 예정', L.filter((r) => r.ship_date === D.meta.tomorrow).length], ['7일 내 출고 예정', L.length, '오늘 포함 8일'], ['작업 남은 차량', L.filter((r) => r.status !== '출고완료').length, '출고완료 전 단계']]);
+  const kindKey = (r) => (r.kind === '중고' ? 'u' : r.kind === '연장' ? 'e' : 'n');
+  const byDay = new Map(); L.forEach((r) => { const o = byDay.get(r.ship_date) || { d: r.ship_date, n: 0, u: 0, e: 0 }; o[kindKey(r)]++; byDay.set(r.ship_date, o); });
+  vbars($('prepDay'), [...byDay.values()].sort((a, b) => a.d.localeCompare(b.d)), 'd', dayText, [{ k: 'n', n: '신차' }, { k: 'u', n: '중고' }, { k: 'e', n: '연장' }], (r) => !S.prepDate || r.d === S.prepDate, (r) => { S.prepDate = S.prepDate === r.d ? '' : r.d; renderPrep(); });
+  const byModel = new Map(); L.forEach((r) => { const o = byModel.get(r.model) || { m: r.model, n: 0, u: 0, e: 0 }; o[kindKey(r)]++; byModel.set(r.model, o); });
+  hbars($('prepModel'), [...byModel.values()].sort((a, b) => (b.n + b.u + b.e) - (a.n + a.u + a.e)), (r) => r.m, [{ k: 'n', n: '신차' }, { k: 'u', n: '중고' }, { k: 'e', n: '연장' }], { empty: '7일 내 출고 예정이 없습니다.' });
+  hbars($('prepParts'), D.prep_parts, (r) => r.gubun + ' · ' + String(r.item).replace(/^크로스바-/, ''), [{ k: 'qty', n: '수량' }], { empty: '준비할 부자재가 없습니다.' });
+  const dates = [...new Set(L.map((r) => r.ship_date))].sort();
+  const chip = (v, t) => { const c = el('button', 'chip' + (S.prepDate === v ? ' on' : ''), t); c.addEventListener('click', () => { S.prepDate = v; renderPrep(); }); return c; };
+  $('prepDates').replaceChildren(chip('', '전체'), ...dates.map((d) => chip(d, dayText(d))));
+  $('prepRows').replaceChildren(...L.filter((r) => !S.prepDate || r.ship_date === S.prepDate).map((r) => { const tr = el('tr'); td(tr, dayText(r.ship_date)); td(tr, r.status, r.status === '출고완료' ? 'muted' : ''); td(tr, r.client); td(tr, r.model); td(tr, r.kind); td(tr, r.plate); td(tr, r.box); td(tr, String(r.crossbar || '').split('크로스바-').join('')); td(tr, r.etc_parts); return tr; }));
+}
+
+/* 반납·재리스 */
+function renderReturns() {
+  const hid = new Set(D.hidden.map((x) => String(x.detail_id)));
+  const st = new Map(D.unreg_status.map((x) => [String(x.id), x.status]));
+  const unreg = D.returns_unreg.filter((r) => !hid.has(String(r.detail_id)));
+  const RANK = { '출고 예정': 0, '예약': 1, '재리스 대기': 2 }; const pend = [...D.returns].sort((a, b) => ((RANK[a.relist_status] ?? 9) - (RANK[b.relist_status] ?? 9)) || String(b.return_date).localeCompare(String(a.return_date)));
+  kpis($('retKpis'), [['최근 1년 중도반납', D.ret_summary.reduce((a, r) => a + (Number(r.cnt) || 0), 0), '인수형 계약만 (자차리스·연장 제외)'], ['재리스 대기', D.relist.filter((r) => r.status === '재리스 대기').length, '매물 등록, 계약 전'], ['재리스 출고 예정', D.relist.filter((r) => r.status === '출고 예정' || r.status === '예약').length, '출고 예정·예약 (계약 진행 중)'], ['매물 미등록', unreg.length, '매물 등록·재계약 모두 없는 차량']]);
+  $('unregCnt').textContent = unreg.length; $('pendCnt').textContent = pend.length;
+  const today = new Date(D.meta.today + 'T00:00:00');
+  $('unregRows').replaceChildren(...unreg.map((r, i) => {
+    const tr = el('tr'); td(tr, i + 1, 'n muted');
+    const sv = st.get(String(r.detail_id)) || '입고예정'; const c = el('td');
+    if (EDIT) { const sel = el('select', 'stsel st-' + sv); ['입고예정', '작업대기', '작업중'].forEach((v) => sel.add(new Option(v, v))); sel.value = sv; sel.setAttribute('aria-label', r.plate + ' 상태');
+      sel.addEventListener('change', async () => { sel.disabled = true; const ok = await post({ action: 'status', id: String(r.detail_id), plate: r.plate, status: sel.value }, '상태를 저장했습니다.'); sel.disabled = false; if (!ok) sel.value = sv; renderReturns(); }); c.appendChild(sel); }
+    else c.appendChild(el('span', 'badge st-' + sv, sv));
+    tr.appendChild(c);
+    const days = r.return_date ? Math.round((today - new Date(r.return_date + 'T00:00:00')) / 864e5) : null;
+    td(tr, days == null ? '' : days + '일째', days >= 7 ? 'warn' : ''); td(tr, r.apply_date); td(tr, r.client); td(tr, r.plate); td(tr, r.chassis6); td(tr, r.model); td(tr, r.insu_end);
+    const dc = el('td'); dc.style.whiteSpace = 'nowrap'; { const eb = el('button', 'btn est', '견적서'); eb.style.marginRight = '4px'; eb.addEventListener('click', () => openEst(r)); dc.appendChild(eb); } if (EDIT) { const b = el('button', 'btn del', '삭제'); b.addEventListener('click', () => confirmBox('반납 차량을 목록에서 삭제할까요?', r.plate + ' (' + r.model + ', ' + r.client + ')을 매물 미등록 목록에서 숨깁니다. CMS 데이터는 바뀌지 않으며, 아래 "삭제한 차량"에서 다시 복원할 수 있습니다.', () => post({ action: 'hide', detail_id: String(r.detail_id), plate: r.plate, client: r.client, model: r.model }, r.plate + ' 차량을 삭제했습니다.').then(renderReturns))); dc.appendChild(b); } tr.appendChild(dc);
+    return tr; }));
+  $('hidCnt').textContent = D.hidden.length;
+  $('hidRows').replaceChildren(...D.hidden.map((h) => { const tr = el('tr'); td(tr, h.plate); td(tr, h.client); td(tr, h.model); td(tr, h.hidden_at); const c = el('td'); if (EDIT) { const b = el('button', 'btn', '복원'); b.addEventListener('click', () => post({ action: 'unhide', detail_id: String(h.detail_id), plate: h.plate }, h.plate + ' 차량을 복원했습니다.').then(renderReturns)); c.appendChild(b); } tr.appendChild(c); return tr; }));
+  $('pendRows').replaceChildren(...pend.map((r, i) => { const tr = el('tr'); td(tr, i + 1, 'n muted'); td(tr, r.return_date); td(tr, r.apply_date); td(tr, r.client); td(tr, r.plate); td(tr, r.chassis6); td(tr, r.model); td(tr, r.mileage == null ? '' : fmt(r.mileage), 'n'); td(tr, r.insu_end); td(tr, r.relist_status); return tr; }));
+  $('relist').replaceChildren(...D.relist.map((r) => { const c = el('div', 'car'); const t = el('div', 't'); t.append(el('b', '', r.trim_name + ' · ' + r.plate), el('span', 'badge ' + (r.status === '재리스 대기' ? 'ok' : 'wb'), r.status)); const dl = el('dl'); [['매물번호', r.post_no], ['주행거리', r.mileage == null ? '—' : fmt(r.mileage) + ' km'], ['배달통', r.box], ['키', r.key_info], ['정비 내역', r.maintenance], ['외관·주행', r.exterior], ['출고 예정', r.ship_date ? dayText(r.ship_date) : '—']].forEach(([k, v]) => dl.append(el('dt', '', k), el('dd', '', v == null || v === '' ? '—' : v))); c.append(t, dl); return c; }));
+  hbars($('retModel'), D.ret_model, (r) => r.model, [{ k: 'cnt', n: '대수', c: 'var(--c1)' }]);
+}
+
+/* 부자재 소요 */
+function renderParts() {
+  const groups = ['배달통', '크로스바', '스크린', '셋팅품목', '탑박스 브라켓', '슬라이드 짐대'];
+  $('partChips').replaceChildren(...groups.map((g) => { const c = el('button', 'chip' + (S.group === g ? ' on' : ''), g); c.addEventListener('click', () => { S.group = g; renderParts(); }); return c; }));
+  const rows = D.materials.filter((r) => r.gubun === S.group);
+  if (S.group === '크로스바') cbChart($('partsUse'), rows, 'used30', S.cbOpenP, 'var(--c0)', renderParts);
+  else hbars($('partsUse'), rows, (r) => r.item, [{ k: 'used30', n: '30일 사용' }]);
+  const out = []; let done = false;
+  const itemRow = (r, child) => { const tr = el('tr'); const used = Number(r.used30) || 0, stock = Number(r.cms_stock) || 0, pd = used / 30, left = stock > 0 && pd > 0 ? Math.floor(stock / pd) : null; td(tr, child ? '' : r.gubun); td(tr, child ? '└ ' + cbSplit(r.item).color : r.item, child ? 'muted' : ''); td(tr, fmt(used), 'n'); td(tr, Math.round(pd * 10) / 10, 'n'); td(tr, fmt(stock), stock < 0 ? 'n warn' : 'n'); td(tr, left == null ? '' : left + '일', left != null && left < 14 ? 'n warn' : 'n'); return tr; };
+  D.materials.forEach((r) => {
+    if (r.gubun !== '크로스바') { out.push(itemRow(r)); return; }
+    if (done) return; done = true;
+    cbGroups(D.materials.filter((x) => x.gubun === '크로스바'), 'used30').forEach((g) => {
+      const open = S.cbOpenP.has(g.type); const tr = el('tr'); td(tr, '크로스바'); const c = el('td'); const b = el('button', 'tog', (open ? '− ' : '+ ') + g.type + ' (' + g.items.length + '색)'); b.addEventListener('click', () => { open ? S.cbOpenP.delete(g.type) : S.cbOpenP.add(g.type); renderParts(); }); c.appendChild(b); tr.appendChild(c); td(tr, fmt(g.v), 'n'); td(tr, Math.round(g.v / 30 * 10) / 10, 'n'); td(tr, '', 'n'); td(tr, '', 'n'); out.push(tr);
+      if (open) g.items.forEach((it) => { const full = D.materials.find((x) => x.gubun === '크로스바' && x.item === it.item); if (full) out.push(itemRow(full, true)); });
+    });
+  });
+  $('partsRows').replaceChildren(...out);
+}
+
+/* 월별 출고 */
+function renderMonthly() {
+  const T = [...D.trend].sort((a, b) => a.month.localeCompare(b.month));
+  if (!S.ym) S.ym = T.length ? T[T.length - 1].month : '';
+  const sel = $('ymSel'); sel.replaceChildren(...[...T].reverse().map((r) => new Option(ymText(r.month), r.month))); sel.value = S.ym; sel.onchange = () => { S.ym = sel.value; renderMonthly(); };
+  document.querySelectorAll('.ymL').forEach((e) => { e.textContent = ymText(S.ym); });
+  const i = T.findIndex((r) => r.month === S.ym), c = T[i] || {}, p = i > 0 ? T[i - 1] : null;
+  const chg = (k) => { if (!p) return ''; const d = (Number(c[k]) || 0) - (Number(p[k]) || 0); return '전월 대비 ' + (d > 0 ? '+' : d < 0 ? '−' : '±') + Math.abs(d).toLocaleString('ko-KR'); };
+  kpis($('mKpis'), [['신차 출고', c.total_cnt, chg('total_cnt')], ['배달통', c.box_qty, chg('box_qty')], ['크로스바', c.crossbar_qty, chg('crossbar_qty')]]);
+  vbars($('trend'), T, 'month', (m) => m.slice(2).replace('-', '.'), [{ k: 'total_cnt', n: '신차 출고' }], (r) => r.month === S.ym, (r) => { S.ym = r.month; renderMonthly(); });
+  hbars($('boxes'), D.boxes_m.filter((r) => r.month === S.ym), (r) => r.item, [{ k: 'qty', n: '수량' }], { empty: '이 달에는 배달통 기록이 없습니다.' });
+  cbChart($('cross'), D.crossbars_m.filter((r) => r.month === S.ym), 'qty', S.cbOpen, 'var(--c1)', renderMonthly);
+}
+
+/* 부품·공임 단가 */
+function renderPrice() {
+  const models = ['PCX-A', '포르자', 'NMAX', 'XMAX', '범용'];
+  $('priceChips').replaceChildren(...models.map((m) => { const c = el('button', 'chip' + (S.model === m ? ' on' : ''), m); c.addEventListener('click', () => { S.model = m; renderPrice(); }); return c; }));
+  const q = S.q.toLowerCase();
+  const rows = [...D.price].sort((a, b) => (Number(a.sort) || 0) - (Number(b.sort) || 0)).filter((r) => r.model === S.model && (!q || String(r.part).toLowerCase().includes(q)));
+  const numIn = (r, k) => { const inp = el('input', 'num-in'); inp.type = 'number'; inp.min = '0'; inp.step = '10'; inp.value = r[k] == null ? '' : r[k]; inp.setAttribute('aria-label', r.part + (k === 'price' ? ' 부품가' : ' 공임'));
+    inp.addEventListener('change', async () => { const v = inp.value === '' ? null : Number(inp.value); const body = { action: 'price', id: r.id, price: k === 'price' ? v : r.price, labor: k === 'labor' ? v : r.labor }; inp.disabled = true; const ok = await post(body, r.model + ' ' + r.part + ' 단가를 저장했습니다.'); inp.disabled = false; if (ok) { inp.classList.add('saved'); setTimeout(() => inp.classList.remove('saved'), 1500); } renderPrice(); }); return inp; };
+  $('priceRows').replaceChildren(...rows.map((r) => { const tr = el('tr'); const pr = r.price == null ? null : Number(r.price), lb = r.labor == null ? null : Number(r.labor); td(tr, r.model); td(tr, r.part);
+    if (EDIT && r.id) { const a = el('td', 'n'); a.appendChild(numIn(r, 'price')); tr.appendChild(a); const b = el('td', 'n'); b.appendChild(numIn(r, 'labor')); tr.appendChild(b); }
+    else { td(tr, won(pr), 'n'); td(tr, won(lb), 'n'); }
+    td(tr, pr == null && lb == null ? '—' : won((pr || 0) + (lb || 0)), 'n');
+    const dc = el('td'); if (EDIT && r.id) { const b = el('button', 'btn del', '삭제'); b.addEventListener('click', () => confirmBox('부품 단가를 삭제할까요?', r.model + ' · ' + r.part + ' 단가를 단가표에서 지웁니다. 다시 쓰려면 새로 등록해야 합니다.', () => post({ action: 'del_price', id: r.id }, r.part + ' 단가를 삭제했습니다.').then(renderPrice))); dc.appendChild(b); } tr.appendChild(dc);
+    return tr; }));
+  $('addForm').hidden = !EDIT;
+}
+$('addForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const part = $('afPart').value.trim(); if (!part) return;
+  const model = $('afModel').value;
+  const ok = await post({ action: 'add_price', model, part, price: $('afPrice').value, labor: $('afLabor').value }, model + ' ' + part + ' 부품을 등록했습니다.');
+  if (ok) { $('afPart').value = ''; $('afPrice').value = ''; $('afLabor').value = ''; S.model = model; S.q = ''; $('priceQ').value = ''; renderPrice(); }
+});
+$('priceQ').addEventListener('input', (e) => { S.q = e.target.value.trim(); renderPrice(); });
+
+/* 수정 저장소 */
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => { t.hidden = true; }, 2500); }
+function conn(cls, text) { const c = $('conn'); c.className = 'conn ' + cls; c.textContent = text; }
+function confirmBox(title, body, onYes) {
+  $('mxT').textContent = title; $('mxB').textContent = body; $('mx').hidden = false; $('mxNo').focus();
+  const close = () => { $('mx').hidden = true; $('mxYes').onclick = null; };
+  $('mxNo').onclick = close; $('mx').onclick = (e) => { if (e.target === $('mx')) close(); };
+  $('mxYes').onclick = () => { close(); onYes(); };
+}
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('mx').hidden) $('mx').hidden = true; });
+function apply(x) {
+  if (!x || !x.ok) return false;
+  D.unreg_status = x.status || []; D.hidden = x.hidden || [];
+  if (x.price && x.price.length) D.price = x.price;
+  renderReturns(); renderPrice(); return true;
+}
+async function post(body, okMsg) {
+  try {
+    const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) });
+    const x = await r.json();
+    if (!x.ok) { toast('저장하지 못했습니다: ' + (x.error || '알 수 없는 오류')); return false; }
+    apply(x); conn('ok', '수정 저장소 연결됨'); toast(okMsg); return true;
+  } catch (e) { conn('bad', '수정 저장소 연결 안 됨'); toast('저장하지 못했습니다. 인터넷 연결을 확인해 주세요.'); return false; }
+}
+async function loadEdits() {
+  if (!EDIT) { conn('', '보기 전용'); return; }
+  try {
+    const x = await (await fetch(API + '?t=' + Date.now())).json();
+    if (!x.ok) throw new Error(x.error);
+    if (!x.price.length) {
+      const st = D.unreg_status.map((s) => ({ id: String(s.id), status: s.status, plate: s.plate || '' }));
+      await post({ action: 'seed', price: D.price, status: st, hidden: D.hidden }, '초기값을 저장소에 채웠습니다.');
+    } else apply(x);
+    conn('ok', '수정 저장소 연결됨');
+  } catch (e) { conn('bad', '수정 저장소 연결 안 됨 · 보이는 값은 마지막 갱신 기준'); }
+}
+$('reload').addEventListener('click', () => { location.reload(); });
+
+/* 수리 견적서 */
+const E = { car: null, sel: new Map(), q: '', model: 'PCX-A', extra: [{ name: '', amt: '' }], memo: '', writer: '' };
+function priceModelOf(m) { const s = String(m || '').toUpperCase(); if (s.includes('PCX')) return 'PCX-A'; if (s.includes('NMAX')) return 'NMAX'; if (s.includes('XMAX')) return 'XMAX'; if (String(m).includes('포르자') || s.includes('FORZA')) return '포르자'; return '범용'; }
+function openEst(r) { E.car = r; E.sel = new Map(); E.q = ''; E.model = priceModelOf(r.model); E.extra = [{ name: '', amt: '' }]; E.memo = ''; $('estModel').value = E.model; $('estQ').value = ''; $('est').hidden = false; document.body.style.overflow = 'hidden'; renderEst(); }
+function closeEst() { $('est').hidden = true; document.body.style.overflow = ''; }
+function renderEst() {
+  const q = E.q.toLowerCase();
+  const list = [...D.price].sort((a, b) => (Number(a.sort) || 0) - (Number(b.sort) || 0)).filter((p) => (p.model === E.model || p.model === '범용') && (!q || String(p.part).toLowerCase().includes(q)));
+  $('estPick').replaceChildren(...list.map((p) => {
+    const key = String(p.id || p.model + p.part); const tr = el('tr'); const c = el('td'); const cb = el('input'); cb.type = 'checkbox'; cb.checked = E.sel.has(key); cb.setAttribute('aria-label', p.part + ' 선택'); c.appendChild(cb); tr.appendChild(c);
+    td(tr, (p.model === '범용' ? '[범용] ' : '') + p.part); td(tr, won(p.price), 'n'); td(tr, won(p.labor), 'n');
+    const qc = el('td', 'n'); const qi = el('input'); qi.type = 'number'; qi.min = '1'; qi.value = E.sel.has(key) ? E.sel.get(key).qty : 1; qi.setAttribute('aria-label', p.part + ' 수량'); qc.appendChild(qi); tr.appendChild(qc);
+    const sync = () => { if (cb.checked) E.sel.set(key, { p, qty: Math.max(1, Number(qi.value) || 1) }); else E.sel.delete(key); renderPaper(); };
+    cb.addEventListener('change', sync); qi.addEventListener('input', () => { if (cb.checked) sync(); });
+    return tr;
+  }));
+  if (!list.length) { const tr = el('tr'); const c = el('td', 'muted', '해당 차종 단가가 없습니다. 위에서 차종을 바꿔 보세요.'); c.colSpan = 5; tr.appendChild(c); $('estPick').replaceChildren(tr); }
+  renderPaper();
+}
+function renderPaper() {
+  const c = E.car || {}; const P = $('estPaper'); P.replaceChildren();
+  P.appendChild(el('h1', '', '수리 견적서'));
+  const info = el('table'); const row = (pairs) => { const tr = el('tr'); pairs.forEach(([k, v]) => { tr.append(el('th', '', k)); const d = el('td'); d.textContent = v == null || v === '' ? '—' : v; tr.appendChild(d); }); info.appendChild(tr); };
+  row([['차량번호', c.plate], ['차종', c.model]]); row([['차대번호(끝 6자리)', c.chassis6], ['업체명', c.client]]); row([['해지 적용일', c.apply_date], ['보험만기', c.insu_end]]);
+  const tr = el('tr'); tr.append(el('th', '', '견적일')); tr.append(el('td', '', D.meta.today)); tr.append(el('th', '', '작성자')); const wd = el('td'); const wi = el('input', 'inl'); wi.value = E.writer; wi.addEventListener('input', () => { E.writer = wi.value; }); wd.appendChild(wi); tr.appendChild(wd); info.appendChild(tr);
+  P.appendChild(info);
+  const t = el('table'); const h = el('tr'); ['No.', '항목', '수량', '부품가', '공임', '금액'].forEach((x) => h.appendChild(el('th', '', x))); t.appendChild(h);
+  let n = 0, sp = 0, sl = 0;
+  [...E.sel.values()].forEach(({ p, qty }) => { const pr = Number(p.price) || 0, lb = Number(p.labor) || 0; sp += pr * qty; sl += lb * qty; const r = el('tr'); [++n, p.part, qty].forEach((v, i) => r.appendChild(el('td', i === 1 ? '' : 'n', String(v)))); r.appendChild(el('td', 'n', won(pr * qty))); r.appendChild(el('td', 'n', won(lb * qty))); r.appendChild(el('td', 'n', won((pr + lb) * qty))); t.appendChild(r); });
+  let sx = 0;
+  E.extra.forEach((x, i) => { const r = el('tr'); r.appendChild(el('td', 'n', String(++n))); const nd = el('td'); const ni = el('input', 'inl'); ni.placeholder = '기타 항목 (직접 입력)'; ni.value = x.name; nd.appendChild(ni); r.appendChild(nd); r.appendChild(el('td', 'n', '')); r.appendChild(el('td', 'n', '')); r.appendChild(el('td', 'n', '')); const ad = el('td', 'n'); const ai = el('input', 'inl'); ai.type = 'number'; ai.min = '0'; ai.step = '100'; ai.style.textAlign = 'right'; ai.value = x.amt; ad.appendChild(ai); r.appendChild(ad);
+    ni.addEventListener('input', () => { x.name = ni.value; }); ai.addEventListener('change', () => { x.amt = ai.value; if (i === E.extra.length - 1 && (x.name || x.amt)) E.extra.push({ name: '', amt: '' }); renderPaper(); });
+    sx += Number(x.amt) || 0; t.appendChild(r); });
+  const tot = (label, v) => { const r = el('tr', 'tot'); const a = el('td', '', label); a.colSpan = 5; a.style.textAlign = 'right'; r.append(a, el('td', 'n', won(v))); t.appendChild(r); };
+  tot('부품 합계', sp); tot('공임 합계', sl); if (sx) tot('기타 합계', sx); tot('총 견적 금액 (부가세 포함)', sp + sl + sx);
+  P.appendChild(t);
+  const mt = el('table'); const mr = el('tr'); mr.appendChild(el('th', '', '비고')); const md = el('td'); const mi = el('textarea', 'inl'); mi.value = E.memo; mi.placeholder = '점검 내용, 특이사항 등'; mi.addEventListener('input', () => { E.memo = mi.value; }); md.appendChild(mi); mr.appendChild(md); mt.appendChild(mr); P.appendChild(mt);
+  P.appendChild(el('p', '', '※ 부품가·공임은 소비자가 기준(부가세 포함)이며, 공임은 혼다/야마하 기준 시간당 125cc 이하 46,200원, 125cc 초과 64,900원입니다. 실제 수리 시 금액이 달라질 수 있습니다.'));
+  const sg = el('div', 'sign'); sg.append(el('span', '', '확인: ________________ (인)'), el('span', '', '작성: ________________ (인)')); P.appendChild(sg);
+}
+$('estModel').addEventListener('change', (e) => { E.model = e.target.value; renderEst(); });
+$('estQ').addEventListener('input', (e) => { E.q = e.target.value.trim(); renderEst(); });
+$('estReset').addEventListener('click', () => { E.sel = new Map(); E.extra = [{ name: '', amt: '' }]; renderEst(); });
+$('estClose').addEventListener('click', closeEst);
+$('estPrint').addEventListener('click', () => { document.body.classList.add('printing'); window.print(); });
+window.addEventListener('afterprint', () => document.body.classList.remove('printing'));
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('est').hidden && $('mx').hidden) closeEst(); });
+
+renderPrep(); renderReturns(); renderParts(); renderMonthly(); renderPrice();
+loadEdits();
+</script>
+</body>
+</html>
