@@ -5,7 +5,7 @@
 평일 08~19시(한국시간) 1시간마다 CMS 데이터를 다시 조회해 갱신·푸시한다.
 
 ## 파일
-- `build.py`      : `data/*.json`을 읽어 **저장소 루트 `index.html`의 `const D = ...;` 줄만** 교체(디자인·기능 유지). 개인 고객명(`..._개인`)은 "개인고객"으로 가림. 데이터가 그대로면 파일을 건드리지 않음.
+- `build.py`      : `data/*.json`을 읽어 **저장소 루트 `index.html`의 `const D = ...;` 줄만** 교체(디자인·기능 유지). 개인 고객명은 그대로 표시(마스킹 해제). 데이터가 그대로면 파일을 건드리지 않음.
 - `template.html` 은 예전 버전 틀이라 더 이상 쓰지 않는다(루트 `index.html`이 최신 페이지).
 - `queries.json`  : CMS 조회 SQL (데이터셋 이름 → SQL). CMS-MCP `query_db`로 실행.
 - `data/`         : 마지막 조회 결과(예시이자 초기값).
@@ -24,7 +24,7 @@
 4. `changed`일 때만 `index.html`을 커밋·푸시 (메시지 예: `data: 2026-11-25 14:00 갱신`). `data/`는 커밋하지 않는다.
 
 ## 자동 실행
-Claude 예약 작업(평일 08~19시 KST 매시 03분)이 위 절차를 실행한다. CMS-MCP 커넥터로 조회하므로 GitHub Actions에는 CMS 접속 정보가 필요 없다.
+평일 08~19시(KST) 5분마다 `change_check.sql`을 먼저 실행해, 결과가 `data/.marker`에 저장된 직전 값과 다를 때만 위 절차를 실행한다(5분 주기는 세션 cron, 매시 03분 예약 작업이 그 cron이 살아 있는지 확인·재생성). CMS-MCP 커넥터로 조회하므로 GitHub Actions에는 CMS 접속 정보가 필요 없다.
 
 ## 수정 기능 (Apps Script)
 - `apps_script/Code.gs`를 Google 스프레드시트의 Apps Script에 붙여 웹 앱으로 배포한 주소를 `config.json`의 `api_url`에 넣는다.
@@ -33,4 +33,4 @@ Claude 예약 작업(평일 08~19시 KST 매시 03분)이 위 절차를 실행�
 
 ## 주의
 - data/ 폴더는 커밋하지 않는다(.gitignore). 개인 고객명이 마스킹 전 상태로 들어 있다.
-- 공개 페이지이므로 개인 고객명 마스킹(build.py)을 빼지 말 것.
+- 개인 고객명 마스킹은 사용자 요청으로 해제했다(공개 페이지에 실명이 보임).

@@ -6,7 +6,7 @@ data/*.json (CMS 조회 결과)을 읽어 저장소 루트 index.html 안의
 
 - data/에 없는 데이터셋은 기존 index.html 값을 유지한다.
   (price / hidden / unreg_status 는 페이지가 Apps Script에서 실시간으로 읽으므로 보통 그대로 둔다.)
-- 공개 페이지이므로 개인 고객명(`..._개인`)은 모든 데이터셋에서 "개인고객"으로 가린다.
+- 개인 고객명도 CMS 값 그대로 표시한다(사용자 요청으로 마스킹 해제, 2026-11-26).
 - 데이터 내용이 이전과 같으면 파일을 건드리지 않는다(갱신 시각만 바뀌는 커밋 방지).
 
 사용: python3 build.py            → 바뀌었으면 "changed", 아니면 "unchanged" 출력
@@ -43,13 +43,6 @@ def load(name):
     return d
 
 
-def mask(rows):
-    for r in rows:
-        if isinstance(r, dict) and str(r.get('client') or '').endswith('_개인'):
-            r['client'] = '개인고객'
-    return rows
-
-
 def main():
     force = '--force' in sys.argv
     with open(PAGE, encoding='utf-8') as f:
@@ -66,9 +59,6 @@ def main():
         if rows is not None:
             new[n] = rows
             loaded[n] = len(rows)
-    for k, v in new.items():
-        if isinstance(v, list):
-            mask(v)
 
     old_body = {k: v for k, v in old.items() if k != 'meta'}
     if new == old_body and not force:
